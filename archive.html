@@ -1,0 +1,75 @@
+---
+layout: default
+title: Archive
+---
+
+<div class="archive-header">
+    <h1>Archive</h1>
+    <p>All posts from Beyond Big-O, organized chronologically.</p>
+</div>
+
+<div class="archive-content">
+    {% assign posts_by_year = site.posts | group_by_exp: "post", "post.date | date: '%Y'" %}
+    
+    {% for year in posts_by_year %}
+        <div class="year-section">
+            <h2 class="year-title">{{ year.name }}</h2>
+            
+            {% assign processed_series = "" | split: "," %}
+            
+            {% for post in year.items %}
+                {% if post.layout == "chapter-post" %}
+                    {% assign series_key = post.base_url | append: "|" | append: post.total_chapters %}
+                    {% unless processed_series contains series_key %}
+                        {% assign processed_series = processed_series | push: series_key %}
+                        <article class="archive-post series-post">
+                            <div class="archive-post-date">
+                                {{ post.date | date: "%b %d" }}
+                            </div>
+                            <div class="archive-post-content">
+                                <h3 class="archive-post-title">
+                                    <a href="{{ post.base_url }}-chapter-1">{{ post.title }}</a>
+                                    <span class="series-indicator">{{ post.total_chapters }} chapters</span>
+                                </h3>
+                                <div class="series-description">
+                                    {{ post.excerpt }}
+                                </div>
+                                {% if post.tags.size > 0 %}
+                                    <div class="archive-post-tags">
+                                        {% for tag in post.tags %}
+                                            <span class="tag">{{ tag }}</span>
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </article>
+                    {% endunless %}
+                {% else %}
+                    <article class="archive-post">
+                        <div class="archive-post-date">
+                            {{ post.date | date: "%b %d" }}
+                        </div>
+                        <div class="archive-post-content">
+                            <h3 class="archive-post-title">
+                                <a href="{{ post.url | relative_url }}">{{ post.title }}</a>
+                            </h3>
+                            {% if post.tags.size > 0 %}
+                                <div class="archive-post-tags">
+                                    {% for tag in post.tags %}
+                                        <span class="tag">{{ tag }}</span>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                    </article>
+                {% endif %}
+            {% endfor %}
+        </div>
+    {% endfor %}
+    
+    {% if site.posts.size == 0 %}
+        <div class="no-posts">
+            <p>No posts yet. Stay tuned for algorithmic adventures!</p>
+        </div>
+    {% endif %}
+</div>

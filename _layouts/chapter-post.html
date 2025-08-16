@@ -1,0 +1,79 @@
+---
+layout: default
+---
+
+<article class="post">
+    <header class="post-header">
+        <h1 class="post-title">{{ page.title }}</h1>
+        <div class="post-meta">
+            <span class="post-date">{{ page.date | date: "%B %d, %Y" }}</span>
+            {% if page.author %}
+                <span class="post-author">by {{ page.author }}</span>
+            {% endif %}
+            {% if page.reading_time %}
+                <span class="reading-time">{{ page.reading_time }} min read</span>
+            {% endif %}
+        </div>
+    </header>
+
+    <!-- Table of Contents (at the beginning) -->
+    {% if page.total_chapters > 1 %}
+    <aside class="chapter-toc">
+        <h3>Table of Contents</h3>
+        <ol class="toc-list">
+            {% for i in (1..page.total_chapters) %}
+                <li class="toc-item {% if i == page.current_chapter %}current-chapter{% endif %}">
+                    <a href="{{ page.base_url }}-chapter-{{ i }}">
+                        Chapter {{ i }}{% if page.chapter_titles[i] %}: {{ page.chapter_titles[i] }}{% endif %}
+                    </a>
+                </li>
+            {% endfor %}
+        </ol>
+    </aside>
+    {% endif %}
+
+    <div class="post-content">
+        <!-- Chapter Title -->
+        {% if page.chapter_title %}
+        <div class="chapter-title-section">
+            <h2 class="chapter-title">{{ page.chapter_title }}</h2>
+            {% if page.chapter_description %}
+                <p class="chapter-description">{{ page.chapter_description }}</p>
+            {% endif %}
+        </div>
+        {% endif %}
+        
+        <!-- Post Content -->
+        {{ content }}
+    </div>
+
+    <!-- Simple Bottom Navigation -->
+    {% if page.total_chapters > 1 %}
+    <nav class="simple-chapter-nav">
+        {% if page.current_chapter > 1 %}
+            {% assign prev_chapter = page.current_chapter | minus: 1 %}
+            <a href="{{ page.base_url }}-chapter-{{ prev_chapter }}" class="simple-nav-btn prev-btn">
+                ← Previous Chapter
+            </a>
+        {% endif %}
+        
+        {% if page.current_chapter < page.total_chapters %}
+            {% assign next_chapter = page.current_chapter | plus: 1 %}
+            <a href="{{ page.base_url }}-chapter-{{ next_chapter }}" class="simple-nav-btn next-btn">
+                Next Chapter →
+            </a>
+        {% endif %}
+    </nav>
+    {% endif %}
+
+    <!-- Post Tags -->
+    {% if page.tags.size > 0 %}
+        <div class="post-tags">
+            {% for tag in page.tags %}
+                <span class="tag">{{ tag }}</span>
+            {% endfor %}
+        </div>
+    {% endif %}
+</article>
+
+
