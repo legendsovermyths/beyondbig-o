@@ -23,7 +23,7 @@ layout: default
         <ol class="toc-list">
             {% for i in (1..page.total_chapters) %}
                 <li class="toc-item {% if i == page.current_chapter %}current-chapter{% endif %}">
-                    <a href="{{ page.base_url }}-chapter-{{ i }}">
+                    <a href="{{ page.base_url | append: '-chapter-' | append: i | relative_url }}">
                         Chapter {{ i }}{% if page.chapter_titles[i] %}: {{ page.chapter_titles[i] }}{% endif %}
                     </a>
                 </li>
@@ -52,14 +52,14 @@ layout: default
     <nav class="simple-chapter-nav">
         {% if page.current_chapter > 1 %}
             {% assign prev_chapter = page.current_chapter | minus: 1 %}
-            <a href="{{ page.base_url }}-chapter-{{ prev_chapter }}" class="simple-nav-btn prev-btn">
+            <a href="{{ page.base_url | append: '-chapter-' | append: prev_chapter | relative_url }}" class="simple-nav-btn prev-btn">
                 ← Previous Chapter
             </a>
         {% endif %}
         
         {% if page.current_chapter < page.total_chapters %}
             {% assign next_chapter = page.current_chapter | plus: 1 %}
-            <a href="{{ page.base_url }}-chapter-{{ next_chapter }}" class="simple-nav-btn next-btn">
+            <a href="{{ page.base_url | append: '-chapter-' | append: next_chapter | relative_url }}" class="simple-nav-btn next-btn">
                 Next Chapter →
             </a>
         {% endif %}

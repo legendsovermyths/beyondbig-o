@@ -28,7 +28,7 @@ title: Archive
                             </div>
                             <div class="archive-post-content">
                                 <h3 class="archive-post-title">
-                                    <a href="{{ post.base_url }}-chapter-1">{{ post.title }}</a>
+                                    <a href="{{ post.base_url | append: '-chapter-1' | relative_url }}">{{ post.title }}</a>
                                     <span class="series-indicator">{{ post.total_chapters }} chapters</span>
                                 </h3>
                                 <div class="series-description">

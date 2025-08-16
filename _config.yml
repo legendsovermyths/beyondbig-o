@@ -2,8 +2,8 @@
 title: "Beyond Big-O"
 tagline: "from contest to codebase"
 description: "Advanced competitive programming algorithms explained with rigorous mathematics and practical applications in software development."
-baseurl: ""
-url: "https://legendsovermyths.github.io/beyondbig-o"
+baseurl: "/beyondbig-o"
+url: "https://legendsovermyths.github.io"
 
 # Author
 author:
