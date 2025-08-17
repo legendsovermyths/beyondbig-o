@@ -1,10 +1,6 @@
 ---
 layout: default
 title: Blog
-pagination:
-  enabled: true
-  per_page: 5
-  permalink: '/page/:num/'
 ---
 
 <div class="blog-header">
@@ -13,10 +9,27 @@ pagination:
 </div>
 
 <div class="blog-posts">
-    {% for post in paginator.posts %}
+    {% assign regular_posts = site.posts | where_exp: "post", "post.layout != 'chapter-post'" %}
+    {% assign chapter_series = site.posts | where: "layout", "chapter-post" | group_by: "base_url" %}
+    
+    {% assign all_content = regular_posts %}
+    
+    {% for series in chapter_series %}
+        {% assign first_chapter = series.items | sort: "current_chapter" | first %}
+        {% assign all_content = all_content | push: first_chapter %}
+    {% endfor %}
+    
+    {% assign sorted_content = all_content | sort: "date" | reverse %}
+    
+    {% for post in sorted_content limit: 10 %}
         <article class="post-preview">
             <h2 class="post-title">
-                <a href="{{ post.url | relative_url }}">{{ post.title }}</a>
+                {% if post.layout == "chapter-post" %}
+                    <a href="{{ post.base_url | append: '-chapter-1' | relative_url }}">{{ post.title }}</a>
+                    <span class="series-badge">{{ post.total_chapters }} chapters</span>
+                {% else %}
+                    <a href="{{ post.url | relative_url }}">{{ post.title }}</a>
+                {% endif %}
             </h2>
             <div class="post-meta">
                 <time datetime="{{ post.date | date_to_xmlschema }}">
@@ -24,6 +37,9 @@ pagination:
                 </time>
                 {% if post.author %}
                     <span class="post-author">by {{ post.author }}</span>
+                {% endif %}
+                {% if post.reading_time %}
+                    <span class="reading-time">{{ post.reading_time }} min read</span>
                 {% endif %}
                 {% if post.tags.size > 0 %}
                     <div class="post-tags">
@@ -39,35 +55,12 @@ pagination:
                 </div>
             {% endif %}
             <div class="read-more">
-                <a href="{{ post.url | relative_url }}">Read more →</a>
+                {% if post.layout == "chapter-post" %}
+                    <a href="{{ post.base_url | append: '-chapter-1' | relative_url }}">Start reading →</a>
+                {% else %}
+                    <a href="{{ post.url | relative_url }}">Read more →</a>
+                {% endif %}
             </div>
         </article>
     {% endfor %}
 </div>
-
-<!-- Pagination -->
-{% if paginator.total_pages > 1 %}
-<nav class="pagination">
-    {% if paginator.previous_page %}
-        <a href="{{ paginator.previous_page_path | relative_url }}">&laquo; Previous</a>
-    {% else %}
-        <span class="disabled">&laquo; Previous</span>
-    {% endif %}
-    
-    {% for page in (1..paginator.total_pages) %}
-        {% if page == paginator.page %}
-            <span class="current">{{ page }}</span>
-        {% elsif page == 1 %}
-            <a href="{{ '/blog/' | relative_url }}">{{ page }}</a>
-        {% else %}
-            <a href="{{ site.paginate_path | relative_url | replace: ':num', page }}">{{ page }}</a>
-        {% endif %}
-    {% endfor %}
-    
-    {% if paginator.next_page %}
-        <a href="{{ paginator.next_page_path | relative_url }}">Next &raquo;</a>
-    {% else %}
-        <span class="disabled">Next &raquo;</span>
-    {% endif %}
-</nav>
-{% endif %}

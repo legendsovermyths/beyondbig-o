@@ -16,20 +16,51 @@ layout: default
         </div>
     </header>
 
-    <!-- Table of Contents (at the beginning) -->
+    <!-- Sidebar Table of Contents -->
     {% if page.total_chapters > 1 %}
-    <aside class="chapter-toc">
-        <h3>Table of Contents</h3>
-        <ol class="toc-list">
-            {% for i in (1..page.total_chapters) %}
-                <li class="toc-item {% if i == page.current_chapter %}current-chapter{% endif %}">
-                    <a href="{{ page.base_url | append: '-chapter-' | append: i | relative_url }}">
-                        Chapter {{ i }}{% if page.chapter_titles[i] %}: {{ page.chapter_titles[i] }}{% endif %}
-                    </a>
-                </li>
-            {% endfor %}
-        </ol>
-    </aside>
+    <div class="toc-sidebar">
+        <button class="toc-toggle" id="tocToggle" aria-label="Toggle Table of Contents">
+            <svg class="toc-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="8" y1="6" x2="21" y2="6"/>
+                <line x1="8" y1="12" x2="21" y2="12"/>
+                <line x1="8" y1="18" x2="21" y2="18"/>
+                <line x1="3" y1="6" x2="3.01" y2="6"/>
+                <line x1="3" y1="12" x2="3.01" y2="12"/>
+                <line x1="3" y1="18" x2="3.01" y2="18"/>
+            </svg>
+            <span class="toc-label">Contents</span>
+        </button>
+        
+        <nav class="toc-drawer" id="tocDrawer">
+            <div class="toc-header">
+                <h3>Table of Contents</h3>
+                <button class="toc-close" id="tocClose" aria-label="Close Table of Contents">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="18" y1="6" x2="6" y2="18"/>
+                        <line x1="6" y1="6" x2="18" y2="18"/>
+                    </svg>
+                </button>
+            </div>
+            <ol class="toc-list">
+                {% for i in (1..page.total_chapters) %}
+                    <li class="toc-item {% if i == page.current_chapter %}current-chapter{% endif %}">
+                        <a href="{{ page.base_url | append: '-chapter-' | append: i | relative_url }}">
+                            <span class="chapter-number">{{ i }}</span>
+                            <span class="chapter-title">
+                                {% if page.chapter_titles[i] %}
+                                    {{ page.chapter_titles[i] }}
+                                {% else %}
+                                    Chapter {{ i }}
+                                {% endif %}
+                            </span>
+                        </a>
+                    </li>
+                {% endfor %}
+            </ol>
+        </nav>
+        
+        <div class="toc-overlay" id="tocOverlay"></div>
+    </div>
     {% endif %}
 
     <div class="post-content">
@@ -67,13 +98,57 @@ layout: default
     {% endif %}
 
     <!-- Post Tags -->
-    {% if page.tags.size > 0 %}
-        <div class="post-tags">
-            {% for tag in page.tags %}
-                <span class="tag">{{ tag }}</span>
-            {% endfor %}
-        </div>
+            {% if page.tags.size > 0 %}
+            <div class="post-tags">
+                {% for tag in page.tags %}
+                    <span class="tag">{{ tag }}</span>
+                {% endfor %}
+            </div>
+        {% endif %}
+    </article>
+
+    {% if page.total_chapters > 1 %}
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const tocToggle = document.getElementById('tocToggle');
+            const tocClose = document.getElementById('tocClose');
+            const tocDrawer = document.getElementById('tocDrawer');
+            const tocOverlay = document.getElementById('tocOverlay');
+            
+            function openToc() {
+                tocDrawer.classList.add('open');
+                tocOverlay.classList.add('active');
+                document.body.style.overflow = 'hidden';
+            }
+            
+            function closeToc() {
+                tocDrawer.classList.remove('open');
+                tocOverlay.classList.remove('active');
+                document.body.style.overflow = '';
+            }
+            
+            tocToggle.addEventListener('click', openToc);
+            tocClose.addEventListener('click', closeToc);
+            tocOverlay.addEventListener('click', closeToc);
+            
+            // Close on escape key
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape' && tocDrawer.classList.contains('open')) {
+                    closeToc();
+                }
+            });
+            
+            // Auto-close on mobile when clicking a link
+            const tocLinks = document.querySelectorAll('.toc-list a');
+            tocLinks.forEach(link => {
+                link.addEventListener('click', function() {
+                    if (window.innerWidth < 1024) {
+                        closeToc();
+                    }
+                });
+            });
+        });
+    </script>
     {% endif %}
-</article>
 
 

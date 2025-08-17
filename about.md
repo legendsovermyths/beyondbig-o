@@ -22,15 +22,6 @@ Competitive programming teaches us to think algorithmically and solve complex pr
 
 This blog explores that connection — showing how contest algorithms evolve into production code, how mathematical elegance translates to engineering excellence, and how competitive programming skills directly enhance software development capabilities.
 
-## Topics Covered
-
-- **Graph Algorithms** — from shortest paths to network flows in distributed systems
-- **Dynamic Programming** — optimization problems in caching, resource allocation, and AI
-- **Data Structures** — advanced trees, tries, and segment structures in databases
-- **String Algorithms** — pattern matching, compression, and text processing at scale
-- **Number Theory** — cryptography, hashing, and distributed consensus
-- **Geometry** — computational geometry in graphics, GIS, and simulation
-
 ## For Whom?
 
 This blog is designed for:
@@ -47,9 +38,7 @@ Hi! I'm **Anirudh Singh**, a software engineer passionate about the intersection
 ## Get In Touch
 
 Have questions about a specific algorithm? Want to suggest a topic? Found an error in the math?
-
-- **Email**: [anirudhsingh111100@gmail.com](mailto:anirudhsingh111100@gmail.com)
-- **RSS**: [Subscribe to updates](/feed.xml)
+**Email**: [anirudhsingh111100@gmail.com](mailto:anirudhsingh111100@gmail.com)
 
 ---
 
