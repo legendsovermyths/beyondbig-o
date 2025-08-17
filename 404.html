@@ -1,0 +1,41 @@
+---
+layout: default
+title: Page Not Found
+permalink: /404.html
+---
+
+<div style="text-align: center; padding: 4rem 2rem;">
+    <h1 style="font-size: 6rem; margin: 0; color: #ff6b6b;">404</h1>
+    <h2 style="font-size: 2rem; margin: 1rem 0; color: var(--text-primary);">Page Not Found</h2>
+    <p style="font-size: 1.2rem; color: var(--text-secondary); margin-bottom: 2rem;">
+        The page you're looking for doesn't exist or has been moved.
+    </p>
+    <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
+        <a href="{{ '/' | relative_url }}" style="display: inline-block; padding: 0.75rem 1.5rem; background: var(--accent-primary); color: white; text-decoration: none; border-radius: 8px; font-weight: 500; transition: all 0.3s ease;">
+            ← Back to Home
+        </a>
+        <a href="{{ '/blog' | relative_url }}" style="display: inline-block; padding: 0.75rem 1.5rem; background: var(--bg-secondary); color: var(--text-primary); text-decoration: none; border-radius: 8px; font-weight: 500; border: 2px solid var(--border-color); transition: all 0.3s ease;">
+            View Blog Posts
+        </a>
+        <a href="{{ '/archive' | relative_url }}" style="display: inline-block; padding: 0.75rem 1.5rem; background: var(--bg-secondary); color: var(--text-primary); text-decoration: none; border-radius: 8px; font-weight: 500; border: 2px solid var(--border-color); transition: all 0.3s ease;">
+            Browse Archive
+        </a>
+    </div>
+</div>
+
+<script>
+// Add hover effects
+document.addEventListener('DOMContentLoaded', function() {
+    const buttons = document.querySelectorAll('a[style*="border-radius"]');
+    buttons.forEach(button => {
+        button.addEventListener('mouseenter', function() {
+            this.style.transform = 'translateY(-2px)';
+            this.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.15)';
+        });
+        button.addEventListener('mouseleave', function() {
+            this.style.transform = 'translateY(0)';
+            this.style.boxShadow = 'none';
+        });
+    });
+});
+</script>
