@@ -37,11 +37,22 @@
     <header class="site-header">
         <nav class="site-nav">
             <a href="{{ '/' | relative_url }}" class="site-title">{{ site.title }}</a>
-            <div class="nav-links">
-                <a href="{{ '/' | relative_url }}">Home</a>
-                <a href="{{ '/blog' | relative_url }}">Blog</a>
-                <a href="{{ '/archive' | relative_url }}">Archive</a>
-                <a href="{{ '/about' | relative_url }}">About</a>
+            
+            <!-- Mobile menu button -->
+            <button class="mobile-menu-toggle" id="mobile-menu-toggle" aria-label="Toggle mobile menu">
+                <span class="hamburger-line"></span>
+                <span class="hamburger-line"></span>
+                <span class="hamburger-line"></span>
+            </button>
+            
+            <!-- Navigation menu -->
+            <div class="nav-menu" id="nav-menu">
+                <div class="nav-links">
+                    <a href="{{ '/' | relative_url }}">Home</a>
+                    <a href="{{ '/blog' | relative_url }}">Blog</a>
+                    <a href="{{ '/archive' | relative_url }}">Archive</a>
+                    <a href="{{ '/about' | relative_url }}">About</a>
+                </div>
                 <button class="dark-mode-toggle" id="dark-mode-toggle" aria-label="Toggle dark mode">
                     <svg class="sun-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <circle cx="12" cy="12" r="5"/>
@@ -60,6 +71,9 @@
                 </button>
             </div>
         </nav>
+        
+        <!-- Mobile overlay -->
+        <div class="mobile-overlay" id="mobile-overlay"></div>
     </header>
 
     <main class="site-content">
@@ -103,6 +117,60 @@
                 document.documentElement.setAttribute('data-theme', newTheme);
                 localStorage.setItem('theme', newTheme);
                 updateIcons(newTheme);
+            });
+        })();
+
+        // Mobile menu functionality
+        (function() {
+            const mobileMenuToggle = document.getElementById('mobile-menu-toggle');
+            const navMenu = document.getElementById('nav-menu');
+            const mobileOverlay = document.getElementById('mobile-overlay');
+            const body = document.body;
+            
+            function toggleMobileMenu() {
+                const isOpen = navMenu.classList.contains('open');
+                
+                if (isOpen) {
+                    navMenu.classList.remove('open');
+                    mobileOverlay.classList.remove('active');
+                    mobileMenuToggle.classList.remove('active');
+                    body.classList.remove('menu-open');
+                } else {
+                    navMenu.classList.add('open');
+                    mobileOverlay.classList.add('active');
+                    mobileMenuToggle.classList.add('active');
+                    body.classList.add('menu-open');
+                }
+            }
+            
+            function closeMobileMenu() {
+                navMenu.classList.remove('open');
+                mobileOverlay.classList.remove('active');
+                mobileMenuToggle.classList.remove('active');
+                body.classList.remove('menu-open');
+            }
+            
+            // Toggle menu on button click
+            mobileMenuToggle.addEventListener('click', toggleMobileMenu);
+            
+            // Close menu when overlay is clicked
+            mobileOverlay.addEventListener('click', closeMobileMenu);
+            
+            // Close menu when a nav link is clicked (mobile)
+            const navLinks = document.querySelectorAll('.nav-links a');
+            navLinks.forEach(link => {
+                link.addEventListener('click', () => {
+                    if (window.innerWidth <= 768) {
+                        closeMobileMenu();
+                    }
+                });
+            });
+            
+            // Close menu on window resize if it gets large
+            window.addEventListener('resize', () => {
+                if (window.innerWidth > 768) {
+                    closeMobileMenu();
+                }
             });
         })();
     </script>
