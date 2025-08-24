@@ -13,8 +13,6 @@ title: Archive
     
     {% for year in posts_by_year %}
         <div class="year-section">
-            <h2 class="year-title">{{ year.name }}</h2>
-            
             {% assign processed_series = "" | split: "," %}
             
             {% for post in year.items %}
