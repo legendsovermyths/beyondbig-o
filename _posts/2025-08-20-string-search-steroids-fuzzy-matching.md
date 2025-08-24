@@ -4353,16 +4353,12 @@ Whether you're searching for DNA sequences in massive genomes, finding patterns 
 
 ## Conclusion
 
-What a journey! We went from brute force (11.6 days) to FFT magic (5 minutes) - but this wasn't just about speed.
+We went from brute force (11.6 days) to FFT magic (5 minutes) - but this wasn't just about speed.
 
-We explored **trees** (tries), **graphs** (Aho-Corasick automata), and **mathematics** (signal processing). Each taught us something different about algorithmic thinking.
+We explored **trees** (tries), **graphs** (Aho-Corasick automata), and **mathematics** (signal processing). Each taught us something different about algorithmic thinking. And let's take a moment to appreciate that we did the string pattern matching in frequency domain. 
 
-Here's the key insight: **similar-looking problems can have completely different optimal solutions**.
+What I want you to take it away from this is how very similar looking problems can have very very different optimum solutions. And we might need to take completely different approach to solve each of them, maybe even go out of our way a little bit.
 
-- **Exact multiple patterns** → Aho-Corasick with failure links
-- **Fuzzy single pattern** → FFT-based correlation 
 
-Both find patterns in text, but use totally different approaches! One uses graph theory, the other uses signal processing. This is the power of recognizing that the shape of the problem determines the shape of the solution.
-
-**Thanks for reading! I hope you've learned something new and caught a glimpse of how trees, graphs, and math can solve problems in unexpected ways. The next time you hit a wall, don't just code harder—think differently!** 🚀
+Thanks for reading! I hope you've learned something new and caught a glimpse of how trees, graphs, and math can solve problems in unexpected ways. The next time you hit a wall, don't just code harder—think differently!
 
