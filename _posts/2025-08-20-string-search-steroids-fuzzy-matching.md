@@ -7,9 +7,7 @@ excerpt: "Dive into the world of high-performance pattern matching where we tack
 tags: ["algorithms", "automata-theory", "fft", "text-processing", "aho-corasick", "interactive"]
 reading_time: 25
 ---
-
 ## Introduction
-
 Picture this: you're a computer scientist working at a fancy biotech company, sipping your third coffee of the morning, when you're presented with a problem that makes you question your life choices.
 
 "We have two little problems for you," they say.
@@ -20,9 +18,54 @@ Picture this: you're a computer scientist working at a fancy biotech company, si
 
 **Problem 2:** Our new Oxford Nanopore tech just spit out a read of 100,000 bases, and we need to match it against that same 10^9 sequence. But since this is a big read, we can tolerate 2-5% mismatches.
 
-<div style="background-color: #f5f5f5; padding: 1rem; border-radius: 8px; border-left: 4px solid #666; margin: 1rem 0;">
+<div class="reality-check-box">
 <strong>Reality Check:</strong> While these numbers are made up for this blog, they're actually very realistic in biotech! In genomics, you often have millions of short reads (100–300 bases) from sequencing, and you need to align them to a large genome (human ~3×10⁹ bases). Oxford Nanopore indeed produces long noisy reads (~10⁴–10⁵ bases). Since these reads are noisy, we need to account for a 2–3% error rate, which is why fuzzy matching with tolerance for mismatches is essential.
 </div>
+
+<style>
+.reality-check-box {
+    background-color: #f5f5f5 !important;
+    padding: 1rem;
+    border-radius: 8px;
+    border-left: 4px solid #666 !important;
+    margin: 1rem 0;
+    color: inherit !important;
+}
+
+/* Explicit light mode */
+@media (prefers-color-scheme: light) {
+    .reality-check-box {
+        background-color: #f5f5f5 !important;
+        border-left-color: #666 !important;
+        color: inherit !important;
+    }
+}
+
+/* Dark mode only */
+@media (prefers-color-scheme: dark) {
+    .reality-check-box {
+        background-color: #374151 !important;
+        border-left-color: #9ca3af !important;
+        color: #f3f4f6 !important;
+    }
+}
+
+/* Fallback for explicit dark theme classes */
+[data-theme="dark"] .reality-check-box,
+.dark .reality-check-box {
+    background-color: #374151 !important;
+    border-left-color: #9ca3af !important;
+    color: #f3f4f6 !important;
+}
+
+/* Explicit light theme classes */
+[data-theme="light"] .reality-check-box,
+.light .reality-check-box {
+    background-color: #f5f5f5 !important;
+    border-left-color: #666 !important;
+    color: inherit !important;
+}
+</style>
 
 Alright, let me translate this into something my CS brain can handle. We have a string of a billion characters, and we need to do two things:
 
@@ -304,7 +347,7 @@ let trieSketch = function(p) {
     };
     
     p.setup = function() {
-        // Create normal resolution canvas
+        // Create initial canvas
         let canvas = p.createCanvas(800, 500);
         canvas.parent('trie-visualization');
         
@@ -330,20 +373,47 @@ let trieSketch = function(p) {
     
     function updateColors() {
         try {
-            colors.bg = getComputedStyle(document.documentElement)
-                .getPropertyValue('--bg-primary').trim() || '#ffffff';
-            const computedAccent = getComputedStyle(document.documentElement)
-                .getPropertyValue('--text-primary').trim();
-            colors.accent = computedAccent || '#111111';
-            const computedText = getComputedStyle(document.documentElement)
-                .getPropertyValue('--text-primary').trim();
-            colors.text = computedText || '#111111';
+            // Get the actual computed CSS colors
+            const computedStyle = getComputedStyle(document.documentElement);
+            const bgPrimary = computedStyle.getPropertyValue('--bg-primary').trim();
+            const textPrimary = computedStyle.getPropertyValue('--text-primary').trim();
+            
+            // Use the theme colors or fallback colors
+            if (bgPrimary && textPrimary) {
+                colors.bg = bgPrimary;
+                colors.text = textPrimary;
+                colors.accent = textPrimary;
+            } else {
+                // Better fallback detection - check if body background is dark
+                const bodyBg = getComputedStyle(document.body).backgroundColor;
+                const isDark = bodyBg && (bodyBg.includes('rgb(') ? 
+                    bodyBg.match(/\d+/g).reduce((sum, val) => sum + parseInt(val), 0) < 384 : 
+                    false);
+                
+                if (isDark) {
+                    colors.bg = '#1f2937';
+                    colors.text = '#f9fafb';
+                    colors.accent = '#f9fafb';
+                } else {
+                    colors.bg = '#ffffff';
+                    colors.text = '#1f2937';
+                    colors.accent = '#1f2937';
+                }
+            }
+            
+            console.log('Updated trie colors:', colors);
         } catch (e) {
-            console.log('Using fallback colors');
+            console.log('Using fallback colors for trie');
+            colors.bg = '#ffffff';
+            colors.text = '#1f2937';
+            colors.accent = '#1f2937';
         }
     }
     
     p.draw = function() {
+        // Update colors on each frame to respond to theme changes
+        updateColors();
+        
         p.background(colors.bg);
         
         // Enable smooth rendering for this frame
@@ -388,29 +458,79 @@ let trieSketch = function(p) {
         const maxLevel = Math.max(...levels.keys());
         const maxNodesInLevel = Math.max(...Array.from(levels.values()).map(arr => arr.length));
         
-        // Scale based on content
-        const availableHeight = p.height - 160; // Leave space for legend
-        const availableWidth = p.width - 100;
-        const levelHeight = Math.min(80, availableHeight / (maxLevel + 1));
-        const minNodeSpacing = 60;
+        // Auto-resize canvas if needed
+        resizeCanvasIfNeeded(maxLevel, maxNodesInLevel);
+        
+        // Balanced spacing - not too cramped, not too stretched
+        const availableHeight = p.height - 160; // Space for legend
+        const availableWidth = p.width - 100; // Horizontal padding
+        const levelHeight = Math.max(70, Math.min(90, availableHeight / (maxLevel + 1))); // Moderate level height
+        const minNodeSpacing = Math.max(80, availableWidth / Math.max(maxNodesInLevel, 4)); // Reasonable spacing
         
         for (let [level, levelNodes] of levels.entries()) {
-            const y = 50 + level * levelHeight;
+            const y = 60 + level * levelHeight; // Not too high, not too low
             
             if (levelNodes.length === 1) {
                 levelNodes[0].targetX = p.width / 2;
                 levelNodes[0].targetY = y;
             } else {
-                // Calculate spacing to fit all nodes with proper centering
-                const neededWidth = (levelNodes.length - 1) * minNodeSpacing;
-                const actualWidth = Math.min(neededWidth, availableWidth);
-                const spacing = levelNodes.length > 1 ? actualWidth / (levelNodes.length - 1) : 0;
-                const startX = p.width / 2 - actualWidth / 2;
+                // Calculate comfortable spacing without being excessive
+                const nodeSpacing = Math.max(minNodeSpacing, 90); // Moderate minimum spacing
+                const totalWidth = (levelNodes.length - 1) * nodeSpacing;
+                const maxAllowedWidth = availableWidth;
+                
+                // Scale down if needed but maintain reasonable minimum
+                const actualSpacing = totalWidth > maxAllowedWidth ? 
+                    Math.max(70, maxAllowedWidth / (levelNodes.length - 1)) : nodeSpacing;
+                
+                const actualTotalWidth = (levelNodes.length - 1) * actualSpacing;
+                const startX = p.width / 2 - actualTotalWidth / 2;
                 
                 levelNodes.forEach((node, index) => {
-                    node.targetX = startX + index * spacing;
+                    node.targetX = startX + index * actualSpacing;
                     node.targetY = y;
                 });
+            }
+        }
+    }
+    
+    function resizeCanvasIfNeeded(maxLevel, maxNodesInLevel) {
+        // More conservative sizing - only resize when really needed
+        const minWidth = Math.max(600, maxNodesInLevel * 90 + 160); // Reduced from 120px to 90px per node
+        const minHeight = Math.max(400, maxLevel * 70 + 160); // Reduced from 90px to 70px per level
+        
+        // Get container constraints
+        const container = document.getElementById('trie-visualization');
+        const containerWidth = container.clientWidth;
+        const maxWidth = Math.min(900, containerWidth - 40); // Reduced max width from 1200 to 900
+        const maxHeight = 600; // Reduced max height from 800 to 600
+        
+        // Calculate optimal dimensions - more conservative growth
+        const targetWidth = Math.min(maxWidth, Math.max(800, minWidth));
+        const targetHeight = Math.min(maxHeight, Math.max(500, minHeight));
+        
+        // Only resize if significantly different (avoid constant small adjustments)
+        const widthDiff = Math.abs(p.width - targetWidth);
+        const heightDiff = Math.abs(p.height - targetHeight);
+        
+        if (widthDiff > 80 || heightDiff > 80) { // Increased threshold from 50 to 80
+            console.log(`Resizing canvas from ${p.width}x${p.height} to ${targetWidth}x${targetHeight}`);
+            
+            // Resize canvas
+            p.resizeCanvas(targetWidth, targetHeight);
+            
+            // Update canvas styling for responsiveness
+            const canvas = p.canvas;
+            canvas.style.maxWidth = '100%';
+            canvas.style.height = 'auto';
+            
+            // If content is too wide, enable horizontal scrolling on the container
+            if (targetWidth > containerWidth - 40) {
+                container.style.overflowX = 'auto';
+                container.style.overflowY = 'hidden';
+            } else {
+                container.style.overflowX = 'visible';
+                container.style.overflowY = 'visible';
             }
         }
     }
@@ -442,8 +562,8 @@ let trieSketch = function(p) {
             const toNode = nodes.find(n => n.id === edge.to);
             
             if (fromNode && toNode) {
-                // Subtle green for animated search, otherwise monochrome
-                p.stroke(toNode.searchHighlight ? '#16a34a' : '#111111');
+                // Subtle green for animated search, otherwise use theme colors
+                p.stroke(toNode.searchHighlight ? '#16a34a' : colors.text);
                 p.strokeWeight(toNode.searchHighlight ? 2.5 : 1.5);
                 p.line(fromNode.x, fromNode.y, toNode.x, toNode.y);
             }
@@ -456,14 +576,14 @@ let trieSketch = function(p) {
                 p.fill('#d1fae5'); // very subtle green fill
                 p.stroke('#16a34a'); // subtle green outline
             } else if (node.isEndOfWord) {
-                p.fill('#ffffff');
-                p.stroke('#111111');
+                p.fill(colors.bg);
+                p.stroke(colors.text);
             } else if (node === trie.root) {
-                p.fill('#ffffff');
-                p.stroke('#111111');
+                p.fill(colors.bg);
+                p.stroke(colors.text);
             } else {
-                p.fill('#ffffff');
-                p.stroke('#111111');
+                p.fill(colors.bg);
+                p.stroke(colors.text);
             }
             
             p.strokeWeight(1.5);
@@ -478,7 +598,7 @@ let trieSketch = function(p) {
             
             // End of word indicator
             if (node.isEndOfWord && node !== trie.root) {
-                p.fill('#111111');
+                p.fill(colors.text);
                 p.noStroke();
                 p.circle(node.x + 12, node.y - 12, 8);
             }
@@ -492,63 +612,102 @@ let trieSketch = function(p) {
         const legendX = 20;
         const legendY = p.height - 120;
         
-        p.fill('#ffffff');
-        p.stroke('#e5e7eb');
+        // Determine if we're in light or dark theme more reliably
+        const isLightTheme = isLightMode(colors.bg, colors.text);
+        
+        // Legend background - use proper contrast for each theme
+        const legendBg = isLightTheme ? '#ffffff' : '#374151';
+        const legendBorder = isLightTheme ? '#d1d5db' : '#6b7280';
+        const legendTextColor = isLightTheme ? '#1f2937' : '#f9fafb';
+        
+        p.fill(legendBg);
+        p.stroke(legendBorder);
         p.strokeWeight(1);
         p.rect(legendX - 10, legendY - 10, 190, 100, 8);
         
-        p.fill('#374151');
+        p.fill(legendTextColor);
         p.textAlign(p.LEFT);
         p.textSize(12);
         p.noStroke();
         
+        // Node fill colors - use theme-appropriate colors
+        const nodeFillColor = isLightTheme ? '#f9fafb' : '#4b5563';
+        const nodeStrokeColor = legendTextColor;
+        
         // Root node
-        p.fill('#ffffff');
-        p.circle(legendX + 10, legendY + 5, 15);
-        p.stroke('#111111');
-        p.noFill();
+        p.fill(nodeFillColor);
+        p.stroke(nodeStrokeColor);
+        p.strokeWeight(1);
         p.circle(legendX + 10, legendY + 5, 15);
         p.noStroke();
-        p.fill('#374151');
+        p.fill(legendTextColor);
         p.text('Root node', legendX + 30, legendY + 8);
         
         // Regular node
-        p.fill('#ffffff');
-        p.circle(legendX + 10, legendY + 25, 15);
-        p.stroke('#111111');
-        p.noFill();
+        p.fill(nodeFillColor);
+        p.stroke(nodeStrokeColor);
+        p.strokeWeight(1);
         p.circle(legendX + 10, legendY + 25, 15);
         p.noStroke();
-        p.fill('#374151');
+        p.fill(legendTextColor);
         p.text('Character node', legendX + 30, legendY + 28);
         
-        // End of word
-        p.fill('#ffffff');
+        // End of word node
+        p.fill(nodeFillColor);
+        p.stroke(nodeStrokeColor);
+        p.strokeWeight(1);
         p.circle(legendX + 10, legendY + 45, 15);
-        p.stroke('#111111');
-        p.noFill();
-        p.circle(legendX + 10, legendY + 45, 15);
+        // Small dot to indicate end of word
         p.noStroke();
-        p.fill('#111111');
-        p.circle(legendX + 16, legendY + 39, 6);
-        p.fill('#374151');
+        p.fill(legendTextColor);
+        p.circle(legendX + 10, legendY + 45, 4);
         p.text('End of word', legendX + 30, legendY + 48);
         
-        // Search highlight
-        p.fill('#d1fae5');
-        p.circle(legendX + 10, legendY + 65, 15);
-        p.stroke('#16a34a');
-        p.noFill();
+        // Search highlight - use theme-aware colors
+        const searchFillColor = isLightTheme ? '#d1fae5' : '#065f46';
+        const searchStrokeColor = isLightTheme ? '#16a34a' : '#10b981';
+        
+        p.fill(searchFillColor);
+        p.stroke(searchStrokeColor);
+        p.strokeWeight(1);
         p.circle(legendX + 10, legendY + 65, 15);
         p.noStroke();
-        p.fill('#374151');
+        p.fill(legendTextColor);
         p.text('Search path', legendX + 30, legendY + 68);
+    }
+    
+    // Helper function to detect light mode more reliably
+    function isLightMode(bgColor, textColor) {
+        // Check if we have valid colors
+        if (!bgColor || !textColor) return true; // Default to light mode
+        
+        // If colors are hex codes, convert to check brightness
+        const getBrightness = (color) => {
+            if (color.startsWith('#')) {
+                const hex = color.slice(1);
+                const r = parseInt(hex.substr(0, 2), 16);
+                const g = parseInt(hex.substr(2, 2), 16);
+                const b = parseInt(hex.substr(4, 2), 16);
+                return (r * 299 + g * 587 + b * 114) / 1000;
+            }
+            // For named colors or other formats, use simple heuristics
+            return bgColor.includes('white') || bgColor.includes('#fff') || 
+                   bgColor.includes('#f') || textColor.includes('black') || 
+                   textColor.includes('#000') || textColor.includes('#1') ? 255 : 50;
+        };
+        
+        const bgBrightness = getBrightness(bgColor);
+        return bgBrightness > 128; // Light if background brightness > 128
     }
     
     // Global functions
     window.addWordToTrie = function(word) {
         if (trie.insert(word)) {
             updateTrieStats();
+            // Force recalculation of positions and potential resize
+            setTimeout(() => {
+                calculatePositions();
+            }, 100);
             return true;
         }
         return false;
@@ -564,6 +723,16 @@ let trieSketch = function(p) {
         trie = new Trie();
         updateTrieStats();
         clearSearchResult();
+        // Reset canvas to default size when cleared
+        setTimeout(() => {
+            if (p.width !== 800 || p.height !== 500) {
+                console.log('Resetting canvas to default size');
+                p.resizeCanvas(800, 500);
+                const container = document.getElementById('trie-visualization');
+                container.style.overflowX = 'visible';
+                container.style.overflowY = 'visible';
+            }
+        }, 100);
     };
     
     function updateTrieStats() {
@@ -703,90 +872,97 @@ document.addEventListener('DOMContentLoaded', function() {
     border-radius: 12px;
     border: 1px solid var(--border-color);
 }
- 
+
 .trie-controls {
     display: flex;
     flex-direction: column;
     gap: 1rem;
     margin-bottom: 2rem;
 }
- 
+
 .input-section, .search-section, .preset-section {
     display: flex;
     gap: 1rem;
     align-items: center;
     flex-wrap: wrap;
 }
- 
+
 .trie-controls input[type="text"] {
     padding: 0.5rem 1rem;
-    border: 2px solid var(--border-color);
+    border: 2px solid var(--border-primary);
     border-radius: 6px;
     background: var(--bg-primary);
     color: var(--text-primary);
     font-size: 14px;
     min-width: 200px;
+    flex: 1;
+    min-width: 150px;
 }
- 
+
 .trie-controls input[type="text"]:focus {
     outline: none;
     border-color: var(--accent-primary);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
 }
- 
+
 .trie-controls button {
     padding: 0.5rem 1rem;
     background: transparent;
-    color: #111111;
-    border: 1.5px solid #111111;
+    color: var(--text-primary);
+    border: 1.5px solid var(--text-primary);
     border-radius: 6px;
     cursor: pointer;
     font-weight: 600;
     font-size: 14px;
     transition: all 0.2s ease;
+    white-space: nowrap;
 }
- 
+
 .trie-controls button:hover {
-    background: #111111;
-    color: #ffffff;
+    background: var(--text-primary);
+    color: var(--bg-primary);
     transform: translateY(-1px);
 }
- 
+
 .trie-controls button:active {
     transform: translateY(0);
 }
- 
+
 .preset-btn {
     font-size: 12px !important;
     padding: 0.4rem 0.8rem !important;
 }
- 
+
 #clear-trie-btn {
     border-color: #dc2626;
     color: #dc2626;
 }
- 
+
 #clear-trie-btn:hover {
     background: #dc2626;
     color: #ffffff;
 }
- 
+
 #search-result {
     font-weight: 600;
     font-size: 14px;
+    color: var(--text-primary);
 }
- 
+
 #trie-visualization {
     background: var(--bg-primary);
     border-radius: 8px;
-    border: 1px solid var(--border-color);
+    border: 1px solid var(--border-primary);
     margin-bottom: 1rem;
     padding: 1rem;
     display: flex;
     justify-content: center;
     align-items: center;
     min-height: 500px;
+    overflow: auto; /* Allow both horizontal and vertical scrolling when needed */
+    position: relative;
 }
- 
+
 #trie-visualization canvas {
     display: block;
     image-rendering: auto !important;
@@ -795,8 +971,10 @@ document.addEventListener('DOMContentLoaded', function() {
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     border-radius: 4px;
+    max-width: 100%;
+    height: auto;
 }
- 
+
 #trie-stats {
     text-align: center;
     font-size: 14px;
@@ -804,7 +982,61 @@ document.addEventListener('DOMContentLoaded', function() {
     padding: 1rem;
     background: var(--bg-primary);
     border-radius: 8px;
-    border: 1px solid var(--border-color);
+    border: 1px solid var(--border-primary);
+}
+
+/* Mobile responsiveness for trie demo */
+@media (max-width: 768px) {
+    .trie-demo {
+        padding: 1rem;
+        margin: 1.5rem 0;
+    }
+    
+    .input-section, .search-section, .preset-section {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0.75rem;
+    }
+    
+    .trie-controls input[type="text"] {
+        min-width: 100%;
+        font-size: 16px; /* Prevents zoom on iOS */
+    }
+    
+    .trie-controls button {
+        width: 100%;
+        justify-content: center;
+    }
+    
+    .preset-btn {
+        font-size: 11px !important;
+        padding: 0.5rem !important;
+    }
+    
+    #trie-visualization {
+        min-height: 400px;
+        padding: 0.5rem;
+        overflow-x: auto; /* Always allow horizontal scroll on mobile */
+    }
+    
+    #trie-stats {
+        font-size: 12px;
+        padding: 0.75rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .trie-demo {
+        padding: 0.75rem;
+    }
+    
+    #trie-visualization {
+        min-height: 350px;
+    }
+    
+    .preset-btn {
+        font-size: 10px !important;
+    }
 }
 </style>
  
@@ -815,8 +1047,6 @@ Now imagine scaling this up to our actual problem: 10,000 DNA sequences stored i
 Simple, right?
  
 Well... no. Not really.
- 
----
  
 ## Wait, There's a Problem
 
@@ -1118,9 +1348,9 @@ let ahoCorasickViz = {
             .append("svg")
             .attr("width", this.width)
             .attr("height", this.height)
-            .style("background", "#ffffff")
+            .style("background", "var(--bg-primary)")
             .style("border-radius", "8px")
-            .style("border", "1px solid #e5e7eb");
+            .style("border", "1px solid var(--border-primary)");
         
         this.updateStatus("Click a pattern set to begin");
     },
@@ -1141,6 +1371,10 @@ let ahoCorasickViz = {
         
         // Clear previous render
         this.svg.selectAll("*").remove();
+        
+        // Update SVG background to ensure it reflects current theme
+        this.svg.style("background", "var(--bg-primary)")
+               .style("border", "1px solid var(--border-primary)");
         
         // Draw failure links first (dashed lines)
         this.svg.selectAll("line.failure")
@@ -1167,7 +1401,7 @@ let ahoCorasickViz = {
             .attr("y1", d => nodes.find(n => n.id === d.from).y)
             .attr("x2", d => nodes.find(n => n.id === d.to).x)
             .attr("y2", d => nodes.find(n => n.id === d.to).y)
-            .attr("stroke", "#111111")
+            .attr("stroke", "var(--text-primary)")
             .attr("stroke-width", 2);
         
         // Draw nodes
@@ -1181,15 +1415,20 @@ let ahoCorasickViz = {
             .attr("fill", d => {
                 if (d.currentMatch) return "#22c55e";
                 if (d.highlighted) return "#d1fae5";
-                if (d.isEndOfWord) return "#ffffff";
-                return "#ffffff";
+                if (d.isEndOfWord) return "var(--bg-primary)";
+                return "var(--bg-primary)";
             })
             .attr("stroke", d => {
                 if (d.currentMatch) return "#16a34a";
                 if (d.highlighted) return "#16a34a";
-                return "#111111";
+                return "var(--text-primary)";
             })
             .attr("stroke-width", 2);
+        
+        // Get current theme colors - force color refresh for theme compatibility
+        const computedStyle = getComputedStyle(document.documentElement);
+        const textColor = computedStyle.getPropertyValue('--text-primary').trim() || '#1f2937';
+        const secondaryTextColor = computedStyle.getPropertyValue('--text-secondary').trim() || '#6b7280';
         
         // Add node labels
         this.svg.selectAll("text")
@@ -1199,7 +1438,7 @@ let ahoCorasickViz = {
             .attr("x", d => d.x)
             .attr("y", d => d.y + 5)
             .attr("text-anchor", "middle")
-            .attr("fill", "#111111")
+            .attr("fill", textColor)
             .attr("font-weight", "bold")
             .attr("font-size", "12px")
             .text(d => d === this.ac.root ? 'ROOT' : d.char.toUpperCase());
@@ -1213,7 +1452,7 @@ let ahoCorasickViz = {
             .attr("cx", d => d.x + 12)
             .attr("cy", d => d.y - 12)
             .attr("r", 4)
-            .attr("fill", "#111111");
+            .attr("fill", textColor);
         
         // Add legend
         this.addLegend();
@@ -1249,11 +1488,45 @@ let ahoCorasickViz = {
     },
     
     addLegend() {
+        // Get current theme colors
+        const computedStyle = getComputedStyle(document.documentElement);
+        const textColor = computedStyle.getPropertyValue('--text-primary').trim() || '#1f2937';
+        const secondaryTextColor = computedStyle.getPropertyValue('--text-secondary').trim() || '#6b7280';
+        const bgColor = computedStyle.getPropertyValue('--bg-primary').trim() || '#ffffff';
+        
+        // Detect if we're in light mode
+        const isLight = this.isLightTheme(bgColor, textColor);
+        
         const legendData = [
-            { color: "#ffffff", stroke: "#111111", text: "State", x: 20, y: this.height - 80 },
-            { color: "#ffffff", stroke: "#111111", text: "Accept State", x: 20, y: this.height - 60, marker: true },
-            { color: "#d1fae5", stroke: "#16a34a", text: "Current Path", x: 20, y: this.height - 40 },
-            { color: "#22c55e", stroke: "#16a34a", text: "Match Found", x: 20, y: this.height - 20 }
+            { 
+                color: isLight ? "#ffffff" : "#374151", 
+                stroke: textColor, 
+                text: "State", 
+                x: 20, 
+                y: this.height - 80 
+            },
+            { 
+                color: isLight ? "#ffffff" : "#374151", 
+                stroke: textColor, 
+                text: "Accept State", 
+                x: 20, 
+                y: this.height - 60, 
+                marker: true 
+            },
+            { 
+                color: isLight ? "#d1fae5" : "#065f46", 
+                stroke: isLight ? "#16a34a" : "#10b981", 
+                text: "Current Path", 
+                x: 20, 
+                y: this.height - 40 
+            },
+            { 
+                color: "#22c55e", 
+                stroke: "#16a34a", 
+                text: "Match Found", 
+                x: 20, 
+                y: this.height - 20 
+            }
         ];
         
         legendData.forEach(item => {
@@ -1270,14 +1543,14 @@ let ahoCorasickViz = {
                     .attr("cx", item.x + 16)
                     .attr("cy", item.y - 6)
                     .attr("r", 3)
-                    .attr("fill", "#111111");
+                    .attr("fill", textColor);
             }
             
             this.svg.append("text")
                 .attr("x", item.x + 25)
                 .attr("y", item.y + 4)
                 .attr("font-size", "12px")
-                .attr("fill", "#374151")
+                .attr("fill", secondaryTextColor)
                 .text(item.text);
         });
         
@@ -1295,8 +1568,28 @@ let ahoCorasickViz = {
             .attr("x", 240)
             .attr("y", this.height - 56)
             .attr("font-size", "12px")
-            .attr("fill", "#374151")
+            .attr("fill", secondaryTextColor)
             .text("Failure Link");
+    },
+    
+    isLightTheme(bgColor, textColor) {
+        if (!bgColor || !textColor) return true;
+        
+        const getBrightness = (color) => {
+            if (color.startsWith('#')) {
+                const hex = color.slice(1);
+                const r = parseInt(hex.substr(0, 2), 16);
+                const g = parseInt(hex.substr(2, 2), 16);
+                const b = parseInt(hex.substr(4, 2), 16);
+                return (r * 299 + g * 587 + b * 114) / 1000;
+            }
+            return bgColor.includes('white') || bgColor.includes('#fff') || 
+                   bgColor.includes('#f') || textColor.includes('black') || 
+                   textColor.includes('#000') || textColor.includes('#1') ? 255 : 50;
+        };
+        
+        const bgBrightness = getBrightness(bgColor);
+        return bgBrightness > 128;
     },
     
     search(text) {
@@ -1456,26 +1749,26 @@ document.addEventListener('DOMContentLoaded', function() {
     padding: 2rem;
     background: var(--bg-secondary);
     border-radius: 12px;
-    border: 1px solid var(--border-color);
+    border: 1px solid var(--border-primary);
 }
- 
+
 .ac-controls {
     display: flex;
     flex-direction: column;
     gap: 1rem;
     margin-bottom: 2rem;
 }
- 
+
 .input-section, .pattern-section, .status-section {
     display: flex;
     gap: 1rem;
     align-items: center;
     flex-wrap: wrap;
 }
- 
+
 .ac-controls input[type="text"] {
     padding: 0.5rem 1rem;
-    border: 2px solid var(--border-color);
+    border: 2px solid var(--border-primary);
     border-radius: 6px;
     background: var(--bg-primary);
     color: var(--text-primary);
@@ -1483,72 +1776,76 @@ document.addEventListener('DOMContentLoaded', function() {
     min-width: 300px;
     flex: 1;
 }
- 
+
 .ac-controls input[type="text"]:focus {
     outline: none;
     border-color: var(--accent-primary);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
 }
- 
+
 .ac-controls button {
     padding: 0.5rem 1rem;
     background: transparent;
-    color: #111111;
-    border: 1.5px solid #111111;
+    color: var(--text-primary);
+    border: 1.5px solid var(--text-primary);
     border-radius: 6px;
     cursor: pointer;
     font-weight: 600;
     font-size: 14px;
     transition: all 0.2s ease;
+    white-space: nowrap;
 }
- 
+
 .ac-controls button:hover {
-    background: #111111;
-    color: #ffffff;
+    background: var(--text-primary);
+    color: var(--bg-primary);
     transform: translateY(-1px);
 }
- 
+
 .pattern-btn {
     font-size: 12px !important;
     padding: 0.4rem 0.8rem !important;
 }
- 
+
 #ac-reset-btn {
     border-color: #dc2626;
     color: #dc2626;
 }
- 
+
 #ac-reset-btn:hover {
     background: #dc2626;
     color: #ffffff;
 }
- 
+
 #aho-corasick-visualization {
     background: var(--bg-primary);
     border-radius: 8px;
-    border: 1px solid var(--border-color);
+    border: 1px solid var(--border-primary);
     margin-bottom: 1rem;
     padding: 1rem;
     display: flex;
     justify-content: center;
     align-items: center;
     min-height: 400px;
+    overflow-x: auto;
 }
- 
+
 .text-display {
     margin-top: 1rem;
     padding: 1rem;
     background: var(--bg-primary);
     border-radius: 8px;
-    border: 1px solid var(--border-color);
+    border: 1px solid var(--border-primary);
 }
- 
+
 #text-visualization {
     font-family: 'Courier New', monospace;
     font-size: 16px;
     line-height: 1.6;
     word-break: break-all;
+    color: var(--text-primary);
 }
- 
+
 .matched-char {
     background: #22c55e;
     color: white;
@@ -1556,18 +1853,82 @@ document.addEventListener('DOMContentLoaded', function() {
     border-radius: 3px;
     font-weight: bold;
 }
- 
+
 .normal-char {
     color: var(--text-primary);
 }
- 
+
 .status-section {
     font-size: 14px;
     font-weight: 500;
 }
- 
+
 #ac-status {
     color: var(--text-secondary);
+}
+
+#ac-matches {
+    color: var(--text-primary);
+}
+
+/* Mobile responsiveness for Aho-Corasick demo */
+@media (max-width: 768px) {
+    .aho-corasick-demo {
+        padding: 1rem;
+        margin: 1.5rem 0;
+    }
+    
+    .input-section, .pattern-section, .status-section {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0.75rem;
+    }
+    
+    .ac-controls input[type="text"] {
+        min-width: 100%;
+        font-size: 16px; /* Prevents zoom on iOS */
+    }
+    
+    .ac-controls button {
+        width: 100%;
+        justify-content: center;
+    }
+    
+    .pattern-btn {
+        font-size: 11px !important;
+        padding: 0.5rem !important;
+    }
+    
+    #aho-corasick-visualization {
+        min-height: 300px;
+        padding: 0.5rem;
+    }
+    
+    #text-visualization {
+        font-size: 14px;
+    }
+    
+    .text-display {
+        padding: 0.75rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .aho-corasick-demo {
+        padding: 0.75rem;
+    }
+    
+    #aho-corasick-visualization {
+        min-height: 250px;
+    }
+    
+    .pattern-btn {
+        font-size: 10px !important;
+    }
+    
+    #text-visualization {
+        font-size: 12px;
+    }
 }
 </style>
  
@@ -1589,7 +1950,6 @@ So now we can blast through our billion-character DNA sequence, finding all 10,0
  
 But here's the thing — we still haven't tackled our second problem. We can now find exact matches but what about that 100,000-character Oxford Nanopore read that might have 2-3% errors? How do we find "almost matches" when the DNA might have some mutations or sequencing errors?
 
----
 
 ## The Fuzzy Matching Problem (Or: When Life Gives You Noisy Data)
 
@@ -1606,17 +1966,17 @@ If we're accepting 1 character mismatch (so 2 out of 3 characters need to match)
 
 ```
 Position 0: ACG vs CGT → 1 match  (C matches C)
-Position 1: CGT vs CGT → 3 matches ✅ (perfect match!)
+Position 1: CGT vs CGT → 3 matches (perfect match!)
 Position 2: GTA vs CGT → 1 match  (G matches G)
 Position 3: TAA vs CGT → 0 matches
 Position 4: AAC vs CGT → 1 match  (C matches C)
 Position 5: ACG vs CGT → 1 match  (C matches C)
-Position 6: CGT vs CGT → 3 matches ✅ (perfect match!)
+Position 6: CGT vs CGT → 3 matches (perfect match!)
 Position 7: GTA vs CGT → 1 match  (G matches G)
 Position 8: TAA vs CGT → 0 matches
 Position 9: AAC vs CGT → 1 match  (C matches C)
 Position 10: ACG vs CGT → 1 match (C matches C)
-Position 11: CGA vs CGT → 2 matches ✅ (C and G match!)
+Position 11: CGA vs CGT → 2 matches (C and G match!)
 ```
 
 So our match vector looks like: `[1, 3, 1, 0, 1, 1, 3, 1, 0, 1, 1, 2]`
@@ -1624,6 +1984,7 @@ So our match vector looks like: `[1, 3, 1, 0, 1, 1, 3, 1, 0, 1, 1, 2]`
 According to this vector, the positions with values ≥2 are acceptable matches: **positions 1, 6, and 11**. Not bad!
 
 Okay, so we have this process, and we would like to optimize it. Let's try to represent it mathematically—it's always a good practice to bring math into shit because mathematicians have worked really hard to optimize a lot of stuff, and maybe they've already solved our problem without realizing it.
+
 
 ## Converting Character Comparisons to Mathematical Operations
 
@@ -1678,7 +2039,7 @@ Let me now do the complete demo with both C and G for a few key positions to sho
 **Position 8 (where pattern CGG aligns with text CGG):**
 - For C: Text segment `[1, 0, 0]` • Pattern `[1, 0, 0]` = 1
 - For G: Text segment `[0, 1, 1]` • Pattern `[0, 1, 1]` = 2
-- **Total matches = 1 + 2 = 3** ✅ Perfect match!
+- **Total matches = 1 + 2 = 3** Perfect match!
 
 **Position 2 (where pattern CGG aligns with text CCG):**
 - For C: Text segment `[1, 1, 0]` • Pattern `[1, 0, 0]` = 1
@@ -1943,9 +2304,9 @@ document.addEventListener('DOMContentLoaded', () => slideMultiplyDemo.init());
     padding: 2rem;
     background: var(--bg-secondary);
     border-radius: 12px;
-    border: 1px solid var(--border-color);
+    border: 1px solid var(--border-primary);
 }
- 
+
 .slide-multiply-demo .controls {
     display: flex;
     gap: 1rem;
@@ -1953,14 +2314,24 @@ document.addEventListener('DOMContentLoaded', () => slideMultiplyDemo.init());
     margin-bottom: 2rem;
     flex-wrap: wrap;
 }
- 
+
 .slide-multiply-demo input[type="text"] {
     padding: 0.5rem 1rem;
-    border: 2px solid var(--border-color);
+    border: 2px solid var(--border-primary);
     border-radius: 6px;
     font-size: 14px;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    flex: 1;
+    min-width: 150px;
 }
- 
+
+.slide-multiply-demo input[type="text"]:focus {
+    outline: none;
+    border-color: var(--accent-primary);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
 .slide-multiply-demo button {
     padding: 0.5rem 1rem;
     background: #3b82f6;
@@ -1970,29 +2341,31 @@ document.addEventListener('DOMContentLoaded', () => slideMultiplyDemo.init());
     cursor: pointer;
     font-weight: 600;
     transition: all 0.2s ease;
+    white-space: nowrap;
 }
- 
+
 .slide-multiply-demo button:hover {
     background: #2563eb;
     transform: translateY(-1px);
 }
- 
+
 .text-display {
     margin: 1rem 0;
 }
- 
+
 .position-row, .text-row {
     display: flex;
     gap: 4px;
+    flex-wrap: wrap;
 }
- 
+
 .position-num {
     width: 30px;
     text-align: center;
     font-size: 10px;
-    color: #6b7280;
+    color: var(--text-quaternary);
 }
- 
+
 .text-char {
     width: 30px;
     height: 30px;
@@ -2000,36 +2373,42 @@ document.addEventListener('DOMContentLoaded', () => slideMultiplyDemo.init());
     align-items: center;
     justify-content: center;
     background: var(--bg-primary);
-    border: 1px solid var(--border-color);
+    border: 1px solid var(--border-primary);
     border-radius: 4px;
     font-family: 'Courier New', monospace;
     font-weight: bold;
     transition: all 0.3s ease;
+    color: var(--text-primary);
 }
- 
+
 .text-char.highlighted {
     background: #fbbf24;
     border-color: #f59e0b;
     transform: scale(1.1);
+    color: #000;
 }
- 
+
 .signal-row {
     display: flex;
     align-items: center;
     margin: 0.5rem 0;
+    flex-wrap: wrap;
 }
- 
+
 .char-label {
     width: 40px;
     font-weight: bold;
     font-family: 'Courier New', monospace;
+    color: var(--text-primary);
+    flex-shrink: 0;
 }
- 
+
 .signal-values {
     display: flex;
     gap: 4px;
+    flex-wrap: wrap;
 }
- 
+
 .signal-bit {
     width: 30px;
     height: 25px;
@@ -2037,82 +2416,144 @@ document.addEventListener('DOMContentLoaded', () => slideMultiplyDemo.init());
     align-items: center;
     justify-content: center;
     background: var(--bg-primary);
-    border: 1px solid var(--border-color);
+    border: 1px solid var(--border-primary);
     border-radius: 2px;
     font-size: 12px;
     font-weight: bold;
     transition: all 0.3s ease;
+    color: var(--text-primary);
 }
- 
+
 .signal-bit.active {
     background: #3b82f6;
     color: white;
 }
- 
+
 .signal-bit.in-window {
     border-color: #f59e0b;
     border-width: 2px;
 }
- 
+
 .signal-bit.pattern-bit {
-    background: #fee2e2;
+    background: var(--bg-tertiary);
     border-color: #ef4444;
 }
- 
+
 .signal-bit.pattern-bit.active {
     background: #ef4444;
     color: white;
 }
- 
+
 .signal-bit.spacer {
     opacity: 0;
     pointer-events: none;
 }
- 
+
 .text-signals, .pattern-signals, .multiplication-result {
     margin: 1.5rem 0;
     padding: 1rem;
     background: var(--bg-primary);
     border-radius: 8px;
-    border: 1px solid var(--border-color);
+    border: 1px solid var(--border-primary);
 }
- 
+
 .calculation-grid {
     display: flex;
     gap: 1rem;
     margin: 1rem 0;
     flex-wrap: wrap;
+    justify-content: center;
 }
- 
-.calc-item {
-    padding: 0.5rem;
-    background: var(--bg-secondary);
-    border-radius: 6px;
-    border: 2px solid var(--border-color);
+
+/* FORCE WHITE BACKGROUNDS FOR CALCULATION ITEMS */
+.slide-multiply-demo .calc-item,
+.slide-multiply-demo .calc-item.match,
+.slide-multiply-demo .calc-item.no-match,
+.calculation-grid .calc-item,
+.calculation-grid .calc-item.match,
+.calculation-grid .calc-item.no-match {
+    background-color: #ffffff !important;
+    background: #ffffff !important;
+    border: 2px solid #e5e7eb !important;
+    color: #374151 !important;
+    padding: 0.5rem !important;
+    border-radius: 6px !important;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1) !important;
 }
- 
-.calc-item.match {
-    border-color: #22c55e;
-    background: #d1fae5;
+
+.slide-multiply-demo .calc-item.match,
+.calculation-grid .calc-item.match {
+    color: #059669 !important;
+    border-color: #d1fae5 !important;
 }
- 
-.calc-item.no-match {
-    border-color: #ef4444;
-    background: #fee2e2;
+
+.slide-multiply-demo .calc-item.no-match,
+.calculation-grid .calc-item.no-match {
+    color: #dc2626 !important;
+    border-color: #fee2e2 !important;
 }
- 
+
+/* Dark mode support for calculation items */
+@media (prefers-color-scheme: dark) {
+    .calc-item {
+        background: #374151 !important;
+        border-color: #6b7280 !important;
+        color: #f9fafb !important;
+    }
+    
+    .calc-item.match {
+        background: #064e3b !important;
+        border-color: #10b981 !important;
+        color: #a7f3d0 !important;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3) !important;
+    }
+    
+    .calc-item.no-match {
+        background: #7f1d1d !important;
+        border-color: #f87171 !important;
+        color: #fecaca !important;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3) !important;
+    }
+}
+
+/* Additional fallback for theme-aware systems */
+[data-theme="dark"] .calc-item,
+.dark .calc-item {
+    background: #374151 !important;
+    border-color: #6b7280 !important;
+    color: #f9fafb !important;
+}
+
+[data-theme="dark"] .calc-item.match,
+.dark .calc-item.match {
+    background: #064e3b !important;
+    border-color: #10b981 !important;
+    color: #a7f3d0 !important;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3) !important;
+}
+
+[data-theme="dark"] .calc-item.no-match,
+.dark .calc-item.no-match {
+    background: #7f1d1d !important;
+    border-color: #f87171 !important;
+    color: #fecaca !important;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3) !important;
+}
+
 .calc-chars {
     font-family: 'Courier New', monospace;
     font-weight: bold;
     text-align: center;
+    color: inherit !important;
 }
- 
+
 .calc-result {
     text-align: center;
     font-weight: bold;
     margin-top: 0.25rem;
+    color: inherit !important;
 }
- 
+
 .total-score {
     font-size: 18px;
     font-weight: bold;
@@ -2121,89 +2562,172 @@ document.addEventListener('DOMContentLoaded', () => slideMultiplyDemo.init());
     padding: 1rem;
     background: var(--bg-secondary);
     border-radius: 8px;
+    color: var(--text-primary);
 }
- 
+
 .match-found {
     color: #22c55e;
     font-size: 20px;
     animation: pulse 1s infinite;
 }
- 
+
 @keyframes pulse {
     0% { opacity: 1; }
     50% { opacity: 0.7; }
     100% { opacity: 1; }
 }
- 
+
 #slide-explanation {
     margin-top: 1rem;
     padding: 1rem;
     background: var(--bg-primary);
     border-radius: 8px;
-    border: 1px solid var(--border-color);
+    border: 1px solid var(--border-primary);
     text-align: center;
+    color: var(--text-primary);
 }
- 
-/* Math theorem styling */
+
+/* Math theorem styling with dark mode support */
 .math-theorem {
     margin: 2rem 0;
     padding: 2rem;
-    background: #f0f9ff;
+    background: var(--bg-tertiary);
     border-left: 4px solid #3b82f6;
     border-radius: 8px;
 }
- 
+
 .math-theorem h4 {
     margin: 0 0 1rem 0;
-    color: #1e40af;
+    color: var(--accent-primary);
     font-size: 1.2rem;
 }
- 
+
 .math-theorem p {
     margin: 0.5rem 0;
+    color: var(--text-primary);
 }
- 
+
 .math-theorem em {
     font-family: 'Times New Roman', serif;
     font-size: 1.1em;
-    color: #1e40af;
+    color: var(--accent-primary);
 }
- 
+
 .math-details {
     margin-top: 1rem;
     padding: 1.5rem;
     background: var(--bg-secondary);
     border-radius: 8px;
-    border: 1px solid var(--border-color);
+    border: 1px solid var(--border-primary);
     font-size: 0.95em;
+    color: var(--text-primary);
 }
- 
+
 .math-details code {
     background: var(--bg-primary);
     padding: 0.2rem 0.4rem;
     border-radius: 4px;
+    color: var(--text-primary);
 }
- 
+
 details summary {
     cursor: pointer;
     padding: 0.75rem 1rem;
     background: var(--bg-secondary);
     border-radius: 8px;
-    border: 1px solid var(--border-color);
+    border: 1px solid var(--border-primary);
     font-weight: 600;
     transition: all 0.2s ease;
+    color: var(--text-primary);
 }
- 
+
 details summary:hover {
     background: var(--bg-primary);
-    border-color: #3b82f6;
+    border-color: var(--accent-primary);
 }
- 
+
 details[open] summary {
     border-bottom-left-radius: 0;
     border-bottom-right-radius: 0;
 }
+
+/* Mobile responsiveness for slide demo */
+@media (max-width: 768px) {
+    .slide-multiply-demo {
+        padding: 1rem;
+        margin: 1.5rem 0;
+    }
+    
+    .slide-multiply-demo .controls {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0.75rem;
+    }
+    
+    .slide-multiply-demo input[type="text"] {
+        min-width: 100%;
+        font-size: 16px; /* Prevents zoom on iOS */
+    }
+    
+    .slide-multiply-demo button {
+        width: 100%;
+        justify-content: center;
+    }
+    
+    .signal-row {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.5rem;
+    }
+    
+    .char-label {
+        width: auto;
+    }
+    
+    .calculation-grid {
+        justify-content: flex-start;
+        gap: 0.5rem;
+    }
+    
+    .position-row, .text-row, .signal-values {
+        flex-wrap: wrap;
+        gap: 2px;
+    }
+    
+    .position-num, .text-char, .signal-bit {
+        width: 25px;
+        height: 25px;
+        font-size: 10px;
+    }
+    
+    .total-score {
+        font-size: 16px;
+    }
+}
+
+@media (max-width: 480px) {
+    .slide-multiply-demo {
+        padding: 0.75rem;
+    }
+    
+    .position-num, .text-char, .signal-bit {
+        width: 20px;
+        height: 20px;
+        font-size: 9px;
+    }
+    
+    .calc-item {
+        padding: 0.25rem;
+        font-size: 12px;
+    }
+    
+    .total-score {
+        font-size: 14px;
+        padding: 0.75rem;
+    }
+}
 </style>
+
 
 ## Wait, This Math Looks Familiar... 
 
@@ -2268,15 +2792,59 @@ Now, if we treat the increasing index positions as the flow of time, we get ours
 
 We can even graph this like signals:
 
-<div id="signal-graph-demo" style="margin: 2rem 0; padding: 2rem; background: var(--bg-secondary); border-radius: 12px; border: 1px solid var(--border-color);">
+<div id="signal-graph-demo" style="margin: 2rem 0; padding: 2rem; background: var(--bg-secondary); border-radius: 8px; border: 1px solid var(--border-primary);">
     <div style="margin-bottom: 1rem;">
-        <label>DNA Sequence: <input type="text" id="dna-input" value="AGGCGTA" style="padding: 0.5rem; margin-left: 0.5rem; border: 2px solid var(--border-color); border-radius: 4px;"></label>
+        <label style="color: var(--text-primary); font-weight: 600;">DNA Sequence: 
+            <input type="text" id="dna-input" value="AGGCGTA" style="padding: 0.5rem; margin-left: 0.5rem; border: 1px solid var(--border-primary); border-radius: 4px; background: var(--bg-primary); color: var(--text-primary); font-size: 16px; width: 200px;">
+        </label>
     </div>
-    <canvas id="signal-canvas" width="700" height="300" style="border: 1px solid var(--border-color); border-radius: 8px; background: white;"></canvas>
-    <div style="margin-top: 1rem; font-size: 14px; color: var(--text-secondary);">
-        Each row shows the signal for a different DNA base. Notice how they're just 0s and 1s plotted over position!
+    <div style="overflow-x: auto; border-radius: 6px; border: 1px solid var(--border-primary); background: var(--bg-primary);">
+        <canvas id="signal-canvas" width="700" height="280" style="display: block; min-width: 600px;"></canvas>
+    </div>
+    <div style="margin-top: 1rem; font-size: 14px; color: var(--text-secondary); text-align: center;">
+        Signal representation: 1 when we see G, 0 otherwise
     </div>
 </div>
+
+<style>
+#signal-graph-demo input:focus {
+    outline: none;
+    border-color: var(--accent-primary);
+}
+
+@media (max-width: 768px) {
+    #signal-graph-demo {
+        padding: 1rem !important;
+        margin: 1.5rem 0 !important;
+    }
+    
+    #signal-graph-demo label {
+        display: block !important;
+        margin-bottom: 0.5rem !important;
+    }
+    
+    #signal-graph-demo input {
+        margin-left: 0 !important;
+        width: 100% !important;
+        max-width: 300px !important;
+    }
+    
+    #signal-canvas {
+        min-width: 500px !important;
+    }
+}
+
+@media (max-width: 480px) {
+    #signal-graph-demo {
+        padding: 0.75rem !important;
+    }
+    
+    #signal-canvas {
+        min-width: 400px !important;
+        height: 250px !important;
+    }
+}
+</style>
 
 <script>
 function drawSignalGraph() {
@@ -2293,29 +2861,45 @@ function drawSignalGraph() {
     canvas.style.width = rect.width + 'px';
     canvas.style.height = rect.height + 'px';
     
-    // Enable crisp rendering
-    ctx.imageSmoothingEnabled = false;
-    
     // Clear canvas
     ctx.clearRect(0, 0, rect.width, rect.height);
     
-    // Just show one simple example - G signal
+    // Get theme colors
+    const computedStyle = getComputedStyle(document.documentElement);
+    const bgColor = computedStyle.getPropertyValue('--bg-primary').trim() || '#ffffff';
+    const textColor = computedStyle.getPropertyValue('--text-primary').trim() || '#1f2937';
+    const secondaryTextColor = computedStyle.getPropertyValue('--text-secondary').trim() || '#6b7280';
+    
+    // Detect theme for better colors
+    const isLightTheme = !bgColor.includes('rgb') ? 
+        (bgColor === '#ffffff' || bgColor === 'white' || !bgColor.startsWith('#')) : 
+        bgColor.match(/\d+/g)?.reduce((sum, val) => sum + parseInt(val), 0) > 384;
+    
+    // Theme-appropriate signal colors
+    const signalColor = isLightTheme ? '#059669' : '#10b981';
+    const axisColor = isLightTheme ? textColor : textColor;
+    
+    // Fill canvas background
+    ctx.fillStyle = bgColor;
+    ctx.fillRect(0, 0, rect.width, rect.height);
+    
+    // Signal data
     const signal = dnaSequence.split('').map(char => char === 'G' ? 1 : 0);
     
     const margin = 80;
     const plotWidth = rect.width - 2 * margin;
     const plotHeight = 120;
-    const y = 80;
+    const y = 60;
     
     // Title
-    ctx.fillStyle = '#1f2937';
-    ctx.font = 'bold 20px Arial';
+    ctx.fillStyle = textColor;
+    ctx.font = '18px -apple-system, BlinkMacSystemFont, sans-serif';
     ctx.textAlign = 'center';
-    ctx.fillText(`Signal for G in "${dnaSequence}"`, rect.width/2, 40);
+    ctx.fillText(`Signal for G in "${dnaSequence}"`, rect.width/2, 30);
     
     // Draw axes
-    ctx.strokeStyle = '#374151';
-    ctx.lineWidth = 2;
+    ctx.strokeStyle = axisColor;
+    ctx.lineWidth = 1;
     ctx.beginPath();
     // Y-axis
     ctx.moveTo(margin, y);
@@ -2326,83 +2910,80 @@ function drawSignalGraph() {
     ctx.stroke();
     
     // Y-axis labels
-    ctx.fillStyle = '#374151';
-    ctx.font = '14px Arial';
+    ctx.fillStyle = textColor;
+    ctx.font = '14px -apple-system, BlinkMacSystemFont, sans-serif';
     ctx.textAlign = 'right';
-    ctx.fillText('1', margin - 10, y + 20);
+    ctx.fillText('1', margin - 10, y + 15);
     ctx.fillText('0', margin - 10, y + plotHeight - 5);
     
-    // Draw the signal as a square wave (digital signal style)
-    ctx.strokeStyle = '#22c55e';
-    ctx.lineWidth = 3;
+    // Draw signal line
+    ctx.strokeStyle = signalColor;
+    ctx.lineWidth = 2;
     ctx.beginPath();
     
     signal.forEach((value, i) => {
-        const x = margin + (i / (signal.length - 1)) * plotWidth;
-        const signalY = y + plotHeight - (value * plotHeight * 0.8) - 20;
+        const x = margin + (i / Math.max(signal.length - 1, 1)) * plotWidth;
+        const signalY = y + plotHeight - (value * plotHeight * 0.7) - 15;
         
         if (i === 0) {
             ctx.moveTo(x, signalY);
         } else {
-            const prevX = margin + ((i - 1) / (signal.length - 1)) * plotWidth;
+            const prevX = margin + ((i - 1) / Math.max(signal.length - 1, 1)) * plotWidth;
             const prevValue = signal[i - 1];
-            const prevSignalY = y + plotHeight - (prevValue * plotHeight * 0.8) - 20;
+            const prevSignalY = y + plotHeight - (prevValue * plotHeight * 0.7) - 15;
             
-            // Draw horizontal line from previous position
             ctx.lineTo(x, prevSignalY);
-            // Draw vertical line to new value
             ctx.lineTo(x, signalY);
         }
     });
     
-    // Draw final horizontal line to show the signal continues
     if (signal.length > 0) {
         const lastX = margin + plotWidth;
         const lastValue = signal[signal.length - 1];
-        const lastSignalY = y + plotHeight - (lastValue * plotHeight * 0.8) - 20;
+        const lastSignalY = y + plotHeight - (lastValue * plotHeight * 0.7) - 15;
         ctx.lineTo(lastX, lastSignalY);
     }
-    
     ctx.stroke();
     
     // Draw points and labels
     signal.forEach((value, i) => {
-        const x = margin + (i / (signal.length - 1)) * plotWidth;
-        const signalY = y + plotHeight - (value * plotHeight * 0.8) - 20;
+        const x = margin + (i / Math.max(signal.length - 1, 1)) * plotWidth;
+        const signalY = y + plotHeight - (value * plotHeight * 0.7) - 15;
         
         // Draw point
-        ctx.fillStyle = '#22c55e';
+        ctx.fillStyle = signalColor;
         ctx.beginPath();
-        ctx.arc(x, signalY, 6, 0, 2 * Math.PI);
+        ctx.arc(x, signalY, 4, 0, 2 * Math.PI);
         ctx.fill();
         
-        // Draw value above/below point
-        ctx.fillStyle = '#1f2937';
-        ctx.font = 'bold 14px Arial';
+        // Value label
+        ctx.fillStyle = textColor;
+        ctx.font = '12px -apple-system, BlinkMacSystemFont, sans-serif';
         ctx.textAlign = 'center';
-        ctx.fillText(value.toString(), x, signalY + (value === 1 ? -15 : 25));
+        ctx.fillText(value.toString(), x, signalY + (value === 1 ? -12 : 18));
         
-        // Draw position and DNA base below
-        ctx.fillStyle = '#6b7280';
-        ctx.font = '12px Arial';
-        ctx.fillText(i.toString(), x, y + plotHeight + 20);
+        // Position number
+        ctx.fillStyle = secondaryTextColor;
+        ctx.font = '11px -apple-system, BlinkMacSystemFont, sans-serif';
+        ctx.fillText(i.toString(), x, y + plotHeight + 15);
         
-        ctx.fillStyle = '#1f2937';
-        ctx.font = 'bold 16px Arial';
-        ctx.fillText(dnaSequence[i], x, y + plotHeight + 40);
+        // DNA base
+        ctx.fillStyle = dnaSequence[i] === 'G' ? signalColor : textColor;
+        ctx.font = '14px -apple-system, BlinkMacSystemFont, sans-serif';
+        ctx.fillText(dnaSequence[i], x, y + plotHeight + 30);
     });
     
-    // Labels
-    ctx.fillStyle = '#6b7280';
-    ctx.font = '12px Arial';
+    // Position label
+    ctx.fillStyle = secondaryTextColor;
+    ctx.font = '12px -apple-system, BlinkMacSystemFont, sans-serif';
     ctx.textAlign = 'center';
-    ctx.fillText('Position', rect.width/2, y + plotHeight + 60);
+    ctx.fillText('Position', rect.width/2, y + plotHeight + 50);
     
-    // Simple explanation
-    ctx.fillStyle = '#374151';
-    ctx.font = '14px Arial';
+    // Explanation
+    ctx.fillStyle = textColor;
+    ctx.font = '13px -apple-system, BlinkMacSystemFont, sans-serif';
     ctx.textAlign = 'center';
-    ctx.fillText('Signal = 1 when we see G, 0 otherwise. Just like converting text to numbers!', rect.width/2, y + plotHeight + 85);
+    ctx.fillText('Signal = 1 when we see G, 0 otherwise', rect.width/2, y + plotHeight + 70);
 }
 
 // Initialize and add event listener
@@ -2413,6 +2994,7 @@ document.addEventListener('DOMContentLoaded', () => {
 </script>
 
 So text over position is analogous to signals over time. Now what?
+
 
 ## Enter the Frequency Domain (AKA "Let's Change Our Perspective")
 
@@ -2451,7 +3033,8 @@ This means instead of sliding and summing (expensive!), we can just multiply cor
 Which essentially means that if were to calculate this convolution in frequency domain it would mean only doing element wise multiplication which is actually just O(N) time.
 
 And *that* is what we're going to use to make our pattern matching blazingly(sorta) fast!
- 
+
+
 ### But Why Does This Work?
  
 <details>
@@ -2592,6 +3175,7 @@ That's the essence of why this beautiful theorem works!
 </div>
 </details>
 
+
 ## The Magic Recipe: FFT-Based Pattern Matching
 
 Alright, let's put all the pieces together and see how this frequency domain magic actually solves our original problem.
@@ -2645,6 +3229,7 @@ Remember our second bioinformatics problem? We had a 100,000-base pattern to sea
 From **11.6 days** to **5 minutes**. That's not just an improvement—that's a complete game changer! We went from "let's schedule this for next week" to "grab a coffee while it runs."
 
 And the best part? This works for *any* error tolerance. Want exact matches? Check positions with full match count. Want 2% tolerance? Check positions with ≥98% match count. Want 5% tolerance? Check positions with ≥95% match count. Same algorithm, different thresholds!
+
 
 ## The Complete FFT Pattern Matching Demo
 
@@ -2754,13 +3339,6 @@ Alright, enough theory! Let's see this magic in action. This interactive demo wi
             </div>
         </div>
     </div>
-
-    <div class="demo-progress">
-        <div class="progress-bar">
-            <div class="progress-fill" id="progress-fill"></div>
-        </div>
-        <div class="progress-text" id="progress-text">Ready to start</div>
-    </div>
 </div>
 
 <style>
@@ -2769,16 +3347,17 @@ Alright, enough theory! Let's see this magic in action. This interactive demo wi
     padding: 2rem;
     background: var(--bg-secondary);
     border-radius: 12px;
-    border: 1px solid var(--border-color);
+    border: 1px solid var(--border-primary);
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 }
 
 .demo-controls {
-    background: white;
+    background: var(--bg-primary);
     padding: 1.5rem;
     border-radius: 8px;
     margin-bottom: 2rem;
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    border: 1px solid var(--border-primary);
 }
 
 .input-group {
@@ -2789,23 +3368,25 @@ Alright, enough theory! Let's see this magic in action. This interactive demo wi
     display: block;
     font-weight: 600;
     margin-bottom: 0.5rem;
-    color: #374151;
+    color: var(--text-primary);
 }
 
 .input-group input {
     width: 100%;
     padding: 0.75rem;
-    border: 2px solid #e5e7eb;
+    border: 2px solid var(--border-primary);
     border-radius: 6px;
     font-size: 16px;
     font-family: 'Courier New', monospace;
     letter-spacing: 2px;
     text-transform: uppercase;
+    background: var(--bg-primary);
+    color: var(--text-primary);
 }
 
 .input-group input:focus {
     outline: none;
-    border-color: #3b82f6;
+    border-color: var(--accent-primary);
     box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
 }
 
@@ -2860,31 +3441,32 @@ Alright, enough theory! Let's see this magic in action. This interactive demo wi
 }
 
 .demo-step {
-    background: white;
+    background: var(--bg-primary);
     margin-bottom: 1.5rem;
     border-radius: 8px;
     overflow: hidden;
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     opacity: 0.3;
     transition: all 0.3s ease;
+    border: 1px solid var(--border-primary);
 }
 
 .demo-step.active {
     opacity: 1;
     box-shadow: 0 4px 8px rgba(0,0,0,0.15);
-    border: 2px solid #3b82f6;
+    border: 2px solid var(--accent-primary);
 }
 
 .demo-step h3 {
-    background: #f8fafc;
+    background: var(--bg-secondary);
     margin: 0;
     padding: 1rem 1.5rem;
-    color: #1f2937;
-    border-bottom: 1px solid #e5e7eb;
+    color: var(--text-primary);
+    border-bottom: 1px solid var(--border-primary);
 }
 
 .demo-step.active h3 {
-    background: #3b82f6;
+    background: var(--accent-primary);
     color: white;
 }
 
@@ -2905,7 +3487,7 @@ Alright, enough theory! Let's see this magic in action. This interactive demo wi
 .label {
     min-width: 80px;
     font-weight: 600;
-    color: #374151;
+    color: var(--text-primary);
 }
 
 .sequence-display {
@@ -2922,9 +3504,9 @@ Alright, enough theory! Let's see this magic in action. This interactive demo wi
     display: flex;
     align-items: center;
     justify-content: center;
-    border: 2px solid #e5e7eb;
+    border: 2px solid var(--border-primary);
     border-radius: 4px;
-    background: white;
+    background: var(--bg-primary);
 }
 
 .sequence-char.A { background: #fee2e2; border-color: #fca5a5; color: #dc2626; }
@@ -2962,10 +3544,11 @@ Alright, enough theory! Let's see this magic in action. This interactive demo wi
     display: flex;
     align-items: center;
     justify-content: center;
-    border: 1px solid #d1d5db;
+    border: 1px solid var(--border-primary);
     border-radius: 2px;
     font-weight: bold;
     font-size: 12px;
+    color: var(--text-primary);
 }
 
 .signal-bit.one {
@@ -2974,8 +3557,8 @@ Alright, enough theory! Let's see this magic in action. This interactive demo wi
 }
 
 .signal-bit.zero {
-    background: #f3f4f6;
-    color: #6b7280;
+    background: var(--bg-tertiary);
+    color: var(--text-secondary);
 }
 
 .signal-bit.padded {
@@ -2994,16 +3577,16 @@ Alright, enough theory! Let's see this magic in action. This interactive demo wi
 }
 
 .fft-row {
-    background: #f8fafc;
+    background: var(--bg-secondary);
     padding: 1rem;
     border-radius: 6px;
-    border: 1px solid #e5e7eb;
+    border: 1px solid var(--border-primary);
 }
 
 .fft-label {
     font-weight: bold;
     margin-bottom: 0.5rem;
-    color: #374151;
+    color: var(--text-primary);
 }
 
 .complex-values {
@@ -3013,13 +3596,13 @@ Alright, enough theory! Let's see this magic in action. This interactive demo wi
 }
 
 .complex-number {
-    background: white;
+    background: var(--bg-primary);
     padding: 4px 8px;
     border-radius: 4px;
-    border: 1px solid #d1d5db;
+    border: 1px solid var(--border-primary);
     font-family: 'Courier New', monospace;
     font-size: 12px;
-    color: #374151;
+    color: var(--text-primary);
 }
 
 .multiplication-grid {
@@ -3033,14 +3616,14 @@ Alright, enough theory! Let's see this magic in action. This interactive demo wi
     gap: 1rem;
     margin-bottom: 1rem;
     padding: 1rem;
-    background: #f8fafc;
+    background: var(--bg-secondary);
     border-radius: 6px;
 }
 
 .multiply-operator {
     font-size: 20px;
     font-weight: bold;
-    color: #6b7280;
+    color: var(--text-secondary);
     text-align: center;
 }
 
@@ -3054,15 +3637,16 @@ Alright, enough theory! Let's see this magic in action. This interactive demo wi
 }
 
 .character-result {
-    background: #f8fafc;
+    background: var(--bg-secondary);
     padding: 1rem;
     border-radius: 6px;
-    border: 1px solid #e5e7eb;
+    border: 1px solid var(--border-primary);
 }
 
 .character-label {
     font-weight: bold;
     margin-bottom: 0.5rem;
+    color: var(--text-primary);
 }
 
 .correlation-values {
@@ -3077,25 +3661,26 @@ Alright, enough theory! Let's see this magic in action. This interactive demo wi
     display: flex;
     align-items: center;
     justify-content: center;
-    background: white;
-    border: 1px solid #d1d5db;
+    background: var(--bg-primary);
+    border: 1px solid var(--border-primary);
     border-radius: 3px;
     font-family: 'Courier New', monospace;
     font-size: 11px;
     font-weight: bold;
+    color: var(--text-primary);
 }
 
 .final-scores {
     margin-top: 1rem;
     padding: 1rem;
-    background: #eff6ff;
-    border: 2px solid #3b82f6;
+    background: var(--bg-tertiary);
+    border: 2px solid var(--accent-primary);
     border-radius: 6px;
 }
 
 .final-scores h4 {
     margin: 0 0 0.5rem 0;
-    color: #1e40af;
+    color: var(--accent-primary);
 }
 
 .score-values {
@@ -3109,12 +3694,12 @@ Alright, enough theory! Let's see this magic in action. This interactive demo wi
     display: flex;
     align-items: center;
     justify-content: center;
-    background: white;
-    border: 2px solid #3b82f6;
+    background: var(--bg-primary);
+    border: 2px solid var(--accent-primary);
     border-radius: 4px;
     font-family: 'Courier New', monospace;
     font-weight: bold;
-    color: #1e40af;
+    color: var(--accent-primary);
 }
 
 .score-value.perfect-match {
@@ -3130,25 +3715,26 @@ Alright, enough theory! Let's see this magic in action. This interactive demo wi
 }
 
 .step-explanation {
-    background: #f0f9ff;
+    background: var(--bg-tertiary);
     padding: 1rem;
     border-radius: 6px;
-    color: #0c4a6e;
+    color: var(--text-primary);
     font-style: italic;
-    border-left: 4px solid #0ea5e9;
+    border-left: 4px solid var(--accent-primary);
 }
 
 .demo-progress {
-    background: white;
+    background: var(--bg-primary);
     padding: 1rem;
     border-radius: 8px;
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    border: 1px solid var(--border-primary);
 }
 
 .progress-bar {
     width: 100%;
     height: 8px;
-    background: #e5e7eb;
+    background: var(--bg-tertiary);
     border-radius: 4px;
     overflow: hidden;
     margin-bottom: 0.5rem;
@@ -3156,7 +3742,7 @@ Alright, enough theory! Let's see this magic in action. This interactive demo wi
 
 .progress-fill {
     height: 100%;
-    background: linear-gradient(90deg, #3b82f6, #10b981);
+    background: linear-gradient(90deg, var(--accent-primary), #10b981);
     width: 0%;
     transition: width 0.3s ease;
 }
@@ -3164,21 +3750,105 @@ Alright, enough theory! Let's see this magic in action. This interactive demo wi
 .progress-text {
     text-align: center;
     font-weight: 600;
-    color: #374151;
+    color: var(--text-primary);
 }
 
+/* Mobile responsiveness for FFT demo */
 @media (max-width: 768px) {
+    .fft-demo-container {
+        padding: 1rem;
+        margin: 1.5rem 0;
+    }
+    
+    .demo-controls {
+        padding: 1rem;
+    }
+    
     .demo-buttons {
         flex-direction: column;
+        gap: 0.75rem;
+    }
+    
+    .demo-buttons button {
+        width: 100%;
+        justify-content: center;
+    }
+    
+    .input-group input {
+        font-size: 16px; /* Prevents zoom on iOS */
     }
     
     .multiply-row {
         grid-template-columns: 1fr;
         text-align: center;
+        gap: 0.75rem;
     }
     
     .complex-values, .correlation-values, .score-values {
         justify-content: center;
+        flex-wrap: wrap;
+        gap: 3px;
+    }
+    
+    .complex-number, .correlation-value, .score-value {
+        font-size: 10px;
+        padding: 2px 4px;
+    }
+    
+    .sequence-char, .signal-bit {
+        width: 20px;
+        height: 20px;
+        font-size: 10px;
+    }
+    
+    .step-content {
+        padding: 1rem;
+    }
+    
+    .signals-grid {
+        gap: 0.75rem;
+    }
+    
+    .signal-row {
+        flex-wrap: wrap;
+        gap: 0.5rem;
+    }
+    
+    .character-result {
+        padding: 0.75rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .fft-demo-container {
+        padding: 0.75rem;
+    }
+    
+    .demo-controls {
+        padding: 0.75rem;
+    }
+    
+    .complex-number, .correlation-value {
+        width: 30px;
+        height: 20px;
+        font-size: 9px;
+        padding: 1px 2px;
+    }
+    
+    .score-value {
+        width: 30px;
+        height: 25px;
+        font-size: 10px;
+    }
+    
+    .sequence-char, .signal-bit {
+        width: 18px;
+        height: 18px;
+        font-size: 9px;
+    }
+    
+    .final-scores h4 {
+        font-size: 14px;
     }
 }
 </style>
@@ -3673,6 +4343,7 @@ And there you have it! From the humble beginnings of a brute force search taking
 This isn't just a story about optimization—it's a perfect example of how **mathematical abstractions** can lead to breakthrough solutions. By recognizing that pattern matching is really just convolution in disguise, and that convolution becomes multiplication in the frequency domain, we unlocked the power of FFT to transform an intractable problem into a manageable one.
 
 Whether you're searching for DNA sequences in massive genomes, finding patterns in time series data, or implementing any kind of template matching, the principles we've explored here will serve you well.
+
 
 ## Conclusion
 
