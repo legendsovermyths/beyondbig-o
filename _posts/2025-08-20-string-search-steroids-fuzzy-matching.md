@@ -3339,6 +3339,12 @@ Alright, enough theory! Let's see this magic in action. This interactive demo wi
             </div>
         </div>
     </div>
+    <div class="demo-progress">
+        <div class="progress-bar">
+            <div class="progress-fill" id="progress-fill"></div>
+        </div>
+        <div class="progress-text" id="progress-text">Ready to start</div>
+    </div>
 </div>
 
 <style>
