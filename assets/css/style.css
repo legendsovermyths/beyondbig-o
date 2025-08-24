@@ -1269,6 +1269,17 @@ html, body {
     font-size: 0.9rem;
 }
 
+.post-meta .reading-time {
+    color: var(--text-tertiary);
+    font-weight: 500;
+}
+
+.post-meta .reading-time::before {
+    content: "•";
+    margin-right: 0.5rem;
+    color: var(--text-quaternary);
+}
+
 .post-tags {
     display: flex;
     gap: 0.5rem;

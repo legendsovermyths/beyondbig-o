@@ -5,7 +5,7 @@ date: 2025-08-20
 author: "Anirudh Singh"
 excerpt: "Dive into the world of high-performance pattern matching where we tackle two real-world bioinformatics challenges: exact sequence matching across a billion characters, and fuzzy pattern matching with 2-3% tolerance."
 tags: ["algorithms", "automata-theory", "fft", "text-processing", "aho-corasick", "interactive"]
-reading_time: 25
+reading_time: 30
 ---
 ## Introduction
 Picture this: you're a computer scientist working at a fancy biotech company, sipping your third coffee of the morning, when you're presented with a problem that makes you question your life choices.
@@ -4346,7 +4346,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 And there you have it! From the humble beginnings of a brute force search taking 11.6 days, we've journeyed through the mathematical wonderland of signal processing, Fourier transforms, and convolution theory to arrive at an algorithm that can solve the same problem in just 5 minutes.
 
-This isn't just a story about optimization—it's a perfect example of how **mathematical abstractions** can lead to breakthrough solutions. By recognizing that pattern matching is really just convolution in disguise, and that convolution becomes multiplication in the frequency domain, we unlocked the power of FFT to transform an intractable problem into a manageable one.
+This isn't just a story about optimization—it's a perfect example of how **mathematical abstractions** can lead to breakthrough solutions. By recognizing that pattern matching(good old sliding window approach) is really just convolution in disguise, and that convolution becomes multiplication in the frequency domain, we unlocked the power of FFT to transform an intractable problem into a manageable one.
 
 Whether you're searching for DNA sequences in massive genomes, finding patterns in time series data, or implementing any kind of template matching, the principles we've explored here will serve you well.
 

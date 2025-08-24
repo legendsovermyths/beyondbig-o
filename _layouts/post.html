@@ -12,6 +12,9 @@ layout: default
             {% if page.author %}
                 <span class="post-author">by {{ page.author }}</span>
             {% endif %}
+            {% if page.reading_time %}
+                <span class="reading-time">{{ page.reading_time }} min read</span>
+            {% endif %}
             {% if page.tags.size > 0 %}
                 <div class="post-tags">
                     {% for tag in page.tags %}
