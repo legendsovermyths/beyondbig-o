@@ -14,7 +14,7 @@ Picture this: you're a computer scientist working at a fancy biotech company, si
 
 "We have two little problems for you," they say.
 
-*Little problems.* Famous last words in tech.
+*Little problems.* Alright.
 
 **Problem 1:** We have around 10,000 small DNA sequences, each about 100 bases long, and we need to find them in a sequence that's 10^9 characters long. Oh, and since these are small sequences, we want exact matches—no room for errors.
 
@@ -51,7 +51,7 @@ For each pattern in our dictionary, we need to find **exactly** where in this 1 
 AGTCCGATCGTAGCTACGTAGCTACGTACGTACGTACGTACG...  (continues for 100k chars)
 ```
 
-We need to find where in our 1 billion string this pattern is present, but here's the twist: we also need to check where "almost" this pattern is present. So if in some places there's a `G` instead of `A` or a `T` instead of `C`, but the rest of the pattern aligns (around 97% of characters match), we'll consider it a match.
+We need to find where in our 1 billion string this pattern is present, but here's the thing: we also need to check where "almost" this pattern is present. So if in some places there's a `G` instead of `A` or a `T` instead of `C`, but the rest of the pattern aligns (around 97% of characters match), we'll consider it a match.
 
 Simple, right? Just like finding a needle in a haystack, except the haystack is the size of a small country and you're looking for thousands of needles.
 
@@ -68,25 +68,25 @@ A modern computer can do roughly 10^8 operations per second, so:
 
 *116 days.* That's longer than most people's summer vacations. That's longer than some relationships. That's definitely longer than anyone will wait for results.
 
-This one's a bit more manageable (relatively speaking):
+Now let's see for the other problem, this one's a bit more manageable (relatively speaking):
 - 10^9 text length × 10^5 pattern length = **10^14 operations**
 - 10^14 ÷ 10^8 = 10^6 seconds = **11.6 days**
 
-Eleven and a half days. Still bad, but at least it's not measured in months. People might actually wait for this one, assuming they don't find a better solution first.
+Eleven and a half days. Still bad, but at least it's not measured in months. People might actually wait for this one. But it's still bad.
 
-Okay, so brute force is out. But wait—I actually paid attention in my Data Structures and Algorithms class! Surely there's something useful there?
+Okay, so brute force is out. But wait—Is there something that learnt while doing my Data Structures and Algorithms! Surely there's something useful there(otherwise what's the point)?
 
-I know the KMP algorithm! That beautiful piece of algorithmic elegance that does pattern matching in O(n+m) time. That's linear time! That's amazing!
+I know the KMP algorithm! That piece of algorithmic elegance that does pattern matching in O(n+m) time. That's linear time! That's amazing!
 
 ...except it only handles one pattern at a time, and it doesn't do fuzzy matching. It's like having a Ferrari that only works on perfectly paved roads and can only carry one passenger.
 
-So here I am, with a problem that's way bigger than what my textbook covered. We're talking about processing billions of characters against thousands of patterns, with some needing fuzzy matching. This is definitely not your typical "find a word in a paragraph" homework problem.
+So here I am, with a problem that's way bigger than what my prep for this job covered. We're talking about processing billions of characters against thousands of patterns, with some needing fuzzy matching. This is definitely not your typical "find a word in a paragraph" homework problem.
 
 What do I do now?
 
 *Let me just run the brute force while I think of better solutions...*
 
-## Enter the Trie (And Why It's Actually Genius)
+## Enter the Trie
  
 So I'm sitting there, watching my CPU slowly die, when I remembered something from my competitive programming days. There's this data structure called a trie — basically a tree where each path from root to leaf spells out a word.
 
@@ -587,10 +587,10 @@ let trieSketch = function(p) {
     function updateSearchResult(word, found) {
         const resultEl = document.getElementById('search-result');
         if (found) {
-            resultEl.innerHTML = `✅ "${word}" found!`;
+            resultEl.innerHTML = `"${word}" found!`;
             resultEl.style.color = '#22c55e';
         } else {
-            resultEl.innerHTML = `❌ "${word}" not found`;
+            resultEl.innerHTML = `"${word}" not found`;
             resultEl.style.color = '#ef4444';
         }
     }
@@ -600,13 +600,13 @@ let trieSketch = function(p) {
         const word = document.getElementById('search-input').value.trim();
         
         if (trie.searchAnimation.foundWord) {
-            resultEl.innerHTML = `✅ "${word}" found!`;
+            resultEl.innerHTML = `"${word}" found!`;
             resultEl.style.color = '#22c55e';
         } else if (trie.searchAnimation.valid) {
-            resultEl.innerHTML = `⚠️ "${word}" is a prefix but not a complete word`;
+            resultEl.innerHTML = `"${word}" is a prefix but not a complete word`;
             resultEl.style.color = '#f59e0b';
         } else {
-            resultEl.innerHTML = `❌ "${word}" not found`;
+            resultEl.innerHTML = `"${word}" not found`;
             resultEl.style.color = '#ef4444';
         }
     }
@@ -812,13 +812,6 @@ Pretty neat, right? You can see how sequences like "ATCG", "ATCGA", and "ATCGAT"
 
 Now imagine scaling this up to our actual problem: 10,000 DNA sequences stored in one massive trie. Instead of checking each sequence individually against our billion-character string, we walk through the string once, character by character, following paths in the trie.
 
-So here's how it works in practice:
-1. Build the trie with all 10,000 DNA sequences
-2. Start at position 1 in our billion-character string
-3. Try to follow a path in the trie for each character
-4. If we hit an end-of-word marker, we found a match!
-5. If we can't follow a path, reset to the trie root and try again from the next position
-
 Simple, right?
  
 Well... no. Not really.
@@ -827,9 +820,9 @@ Well... no. Not really.
  
 ## Wait, There's a Problem
 
-Now here's the thing about tries: they're absolutely brilliant for checking if a word exists in a dictionary. Got a word? Walk down the trie, hit an end marker, boom - it's there. Beautiful.
+Now here's the thing about tries: they're absolutely amazing for checking if a word exists in a dictionary. Got a word? Walk down the trie, hit an end marker, boom - it's there. Beautiful.
 
-But our problem is different. We're not asking "does this word exist?" We're asking "does our billion-character DNA sequence contain any of these 10,000 patterns?" And that's where tries get... awkward.
+But our problem is different. We're not asking "does this word exist?" We're asking "does our billion-character DNA sequence contain any of these 10,000 patterns?" And that's where tries get... problematic.
 
 Let me walk you through what actually happens when you use a basic trie for text searching. Say we've got DNA sequences "ATCGA" and "TCGAT" in our dictionary, and we're searching through the text "ATCGC".
 
@@ -848,11 +841,11 @@ So we're not actually done with those characters. We need to start over from pos
 
 This means we're not really getting that beautiful single-pass behavior we wanted. We're still doing multiple passes, just in a slightly smarter way.
 
-And it gets worse with overlapping gene sequences. Imagine we're looking for both "GAT" and "CGAT" in the text "CGATCG". Our trie will happily find "CGAT" but completely miss that "GAT" was sitting right there in positions 2-4.
+And it gets worse with overlapping gene sequences. Imagine we're looking for both "GAT" and "CGAT" in the text "CGATCG". Our trie will happily find "CGAT" but completely miss that "GAT" was sitting right there in positions 2-4. And we will have to process that position again to catch that pattern.
 
-That's when I realized: the trie is great for dictionary lookups, but it's terrible at handling the overlapping pattern problem we actually need to solve.
+That's when I realized: the trie is great for dictionary lookups, but for multi-pattern match we need something more powerful.
  
-## Enter Aho-Corasick (Or: How to Never Miss Anything Ever Again)
+## Enter Aho-Corasick
  
 This is where Aho and Corasick showed up in 1975 and basically said, "You know what? Let's fix this properly."
 
@@ -860,7 +853,15 @@ Picture this: you're walking through the trie, following the path for "ATCGA", a
 
 That's the genius of Aho-Corasick. It builds these magical shortcuts called **failure links** that are basically the algorithm's way of saying "this path didn't work out, but here's where you should jump to continue your quest."
 
-Think of failure links like those moving walkways in airports. When your main path hits a dead end, instead of walking all the way back to the entrance, you hop onto a walkway that takes you to the longest possible suffix that could still be the start of a match.
+Here's how failure links work: Say you're looking for patterns "ATCG" and "TCGA" in the text "ATCGA". You start matching "ATCG" perfectly... A-T-C-G... but then you hit 'A' and there's no path for "ATCGA" in your trie.
+
+Instead of starting over from the beginning, the failure link says: "Wait! Look at what you just read: 'TCGA'. That's exactly the pattern 'TCGA' you're also looking for!" So it instantly jumps you to the end of the "TCGA" pattern match.
+
+Without failure links, you'd miss this overlap completely and would need to start over. With them, you catch every possible match in one pass.
+
+The key insight is that failure links always jump to the **longest matching suffix**. When you've read "ATCG" and hit a dead end, the algorithm looks at all the suffixes of what you've seen: "TCG", "CG", "G". It finds the longest one that's also a prefix of some pattern in your dictionary. In our case, "TCG" is the start of "TCGA", so the failure link jumps you there, and you can immediately continue matching from that point.
+
+So in a way failure links help you save all the progress that you made till this point.
 
 Let me show you how this works with some DNA sequences that actually demonstrate the overlap problem:
  
@@ -1570,9 +1571,9 @@ document.addEventListener('DOMContentLoaded', function() {
 }
 </style>
  
-Try the step-through mode above — it's actually pretty wild to watch. Click on "TCG, ATCG (overlapping!)" and then step through "ATCGATCG". You'll see something beautiful happen when the algorithm processes "ATCG" and then hits that final "A". Instead of giving up, it uses a failure link to jump to the "TCG" part of the trie and immediately finds another match!
+Try the step-through mode above — it's actually pretty wild to watch. Click on "TCG, ATCG (overlapping!)" and then step through "ATCGATCG". You'll see something happen when the algorithm processes "ATCG" and then hits that final "A". Instead of giving up, it uses a failure link to jump to the "TCG" part of the trie and immediately finds another match!
 
-This is the magic moment where Aho-Corasick shows its true power. A basic trie would have found "ATCG" at position 1 and then started over from position 2, completely missing that "TCG" was hiding at position 3. But with failure links, we catch both patterns in a single sweep.
+This is the magic moment where Aho-Corasick shows its true power. A basic trie would have found "ATCG" at position 1 and then started over from position 2, completely missing that "TCG" was hiding at position 2. But with failure links, we catch both patterns in a single sweep.
 
 So what just happened here? The Aho-Corasick automaton solved the fundamental problem with our trie approach. Instead of restarting from scratch every time we hit a dead end, those failure links let us maintain all the progress we've made.
 
@@ -1580,13 +1581,13 @@ When we're processing "ATCG" and looking for both "TCG" and "ATCG", the failure 
  
 The complexity ends up being **O(N + M + Z)** where N is text length, M is total pattern length, and Z is the number of matches. Compare that to:
 - Our original nightmare: O(N × M × K) = 1000 trillion operations  
-- Aho-Corasick: O(N + M + Z)
+- Aho-Corasick: O(N + M + Z) ≈ 1 billion operations
  
 Whether you've got 10 patterns or 10,000 patterns (like in our case), it still processes each character exactly once. That's the kind of scaling that makes you feel good about your algorithmic life choices.
  
-So now we can blast through our billion-character DNA sequence, finding all 10,000 patterns in a single pass, catching every overlap and never missing a thing. We've gone from 116 days of computation to something that finishes in reasonable time(couple of minutes). Pretty solid improvement from where we started.
+So now we can blast through our billion-character DNA sequence, finding all 10,000 patterns in a single pass, catching every overlap and never missing a thing. We've gone from 116 days of computation to something that finishes in under a minute. Pretty solid improvement from where we started.
  
-But here's the thing — we still haven't tackled our second problem. We can find exact matches like champs, but what about that 100,000-character Oxford Nanopore read that might have 2-3% errors? How do we find "almost matches" when the DNA might have some mutations or sequencing errors?
+But here's the thing — we still haven't tackled our second problem. We can now find exact matches but what about that 100,000-character Oxford Nanopore read that might have 2-3% errors? How do we find "almost matches" when the DNA might have some mutations or sequencing errors?
 
 ---
 
@@ -1640,7 +1641,7 @@ And for our pattern `CGG`, we have `C` at only the first position:
 
 **Pattern encoding for C:** `Pc = [1, 0, 0]`
 
-Now what we can do is take the part from the text that aligns at any position and see how many ones align with each other, then add them up to see how many of that character align at this position. Simple stuff.
+Now here's the things, we can do a sliding window approach, but on these encoded binary signals! We slide our pattern across the text, and wherever we see two `1`s aligning (both text and pattern have `1` at the same position), that's a character match. Then we just add up all the aligned `1`s to get the total matches at that position.
 
 Let's do this for character `G` to make it clearer. For our text `ACCGTTACGGATTACGA`, `G` appears at positions 4, 9, 10, and 17:
 
@@ -1693,7 +1694,7 @@ $$
 And the total number of matching characters at position `i` is simply:
 
 $$
-\text{total\_matches}(i) = \sum_{c \in \{A,T,G,C\}} \sum_{j=0}^{|P|-1} T_c[i+j] \times P_c[j]
+\text{total_matches}(i) = \sum_{c \in \{A,T,G,C\}} \sum_{j=0}^{|P|-1} T_c[i+j] \times P_c[j]
 $$
 
 Let me show you with a DNA example. We'll slide our pattern across the text and see what happens:
@@ -2208,10 +2209,10 @@ details[open] summary {
 
 So we've converted our sliding window into this fancy math formula, but now what? Last I checked, this will still be O(N×M) since we're just matching, adding, and sliding. In fact, it's a little worse since now we're processing each character individually.
 
-And you're absolutely right—it is in fact worse if we continue doing the sliding window approach here. The math equation we derived:
+And you're absolutely right—it is in fact worse if we continue doing the sliding window approach here. The math equation we derived for a single character:
 
 $$
-\text{total\_matches}(i) = \sum_{c \in \{A,T,G,C\}} T_c[i:i+|P|] \cdot P_c
+\text{matches}_c(i) = \sum_{j=0}^{|P|-1} T_c[i+j] \times P_c[j]
 $$
 
 This sliding-and-multiplying operation? It's almost like something called **convolution**...
@@ -2231,7 +2232,7 @@ $$
 But since we're dealing with discrete sequences (like our DNA strings), we use discrete convolution with summation instead:
 
 $$
-(f * g)[n] = \sum_{m=-\infty}^{\infty} f[m] \cdot g[n - m]
+(f * g)[n] = \sum_{m=-\infty}^{\infty} f[m] \times g[n - m]
 $$
 
 Now, let me rewrite our sequence matching equation in a way that'll make your eyes light up. Look at that inner sum again:
@@ -2240,7 +2241,7 @@ $$
 \sum_{j=0}^{|P|-1} T_c[i+j] \times P_c[j]
 $$
 
-This is **exactly** the definition of cross-correlation between `T_c` and `P_c` at position `i`! And cross-correlation is just convolution with one signal flipped. If we reverse our pattern `P_c` to get `P_c^{rev}`, then:
+This is **exactly** the definition of cross-correlation between $$`T_c`$$ and $$`P_c`$$ at position `i`! And cross-correlation is just convolution with one signal flipped. If we reverse our pattern $$`P_c`$$ to get $$`P_c^{rev}`$$, then we can write our operation as a convolution:
 
 $$
 \text{matches}_c(i) = (T_c * P_c^{rev})[i]
@@ -2436,13 +2437,17 @@ If you don't understand how the transformation itself works, I'd love to explain
 
 "Okay, cool math trick," you might say, "but how does this help us find DNA patterns faster?"
 
-Well, here comes the beautiful part! There's this absolutely gorgeous property about convolution that connects both domains. It's called the **Convolution Theorem**, and it says that the Fourier transform of a convolution in the time domain equals the multiplication of the Fourier transforms of the individual functions:
+Well, here comes the beautiful part! There's this absolutely gorgeous property about convolution that connects both domains. It's called the **Convolution Theorem**, and it says that the Fourier transform of a convolution in the time domain equals the element-wise multiplication of the Fourier transforms of the individual functions:
 
 $$
-\mathcal{F}\{f * g\} = \mathcal{F}\{f\} \cdot \mathcal{F}\{g\}
+\mathcal{F}\{f * g\} = \mathcal{F}\{f\} \odot \mathcal{F}\{g\}
 $$
 
-In plain English: convolution in time domain = multiplication in frequency domain.
+In plain English: convolution in time domain = element-wise multiplication in frequency domain.
+
+This means instead of sliding and summing (expensive!), we can just multiply corresponding frequency components together (cheap!).
+
+Which essentially means that if were to calculate this convolution in frequency domain it would mean only doing element wise multiplication which is actually just O(N) time.
 
 And *that* is what we're going to use to make our pattern matching blazingly(sorta) fast!
  
@@ -2506,7 +2511,7 @@ $$x[n] = \frac{1}{N} \sum_{k=0}^{N-1} X[k] \cdot e^{i2\pi kn/N}$$
  
 <h4>Part 4: The Convolution Theorem (The Main Event!)</h4>
  
-Here's where the magic happens. Let's prove that convolution in time domain equals multiplication in frequency domain.
+Here's where the magic happens. Let's prove that convolution in time domain equals element-wise multiplication in frequency domain.
  
 Start with the convolution:
  
@@ -2520,7 +2525,7 @@ Swap the sums (we can do this because they're finite):
  
 $$= \sum_{m=0}^{N-1} f[m] \sum_{n=0}^{N-1} g[n-m] \cdot e^{-i2\pi kn/N}$$
  
-Now here's the clever bit. Let $j = n - m$, so $n = j + m$:
+Now here's the clever bit. Let $j = n - m$, so $n = j + m$. Note that as $n$ ranges from $0$ to $N-1$ and $m$ is fixed, $j$ also ranges from $-m$ to $N-1-m$. For circular convolution (which is what DFT computes), we use modular arithmetic, so this becomes:
  
 $$= \sum_{m=0}^{N-1} f[m] \sum_{j=0}^{N-1} g[j] \cdot e^{-i2\pi k(j+m)/N}$$
  
@@ -2545,7 +2550,7 @@ Direct convolution:
 FFT approach:
 1. FFT of text signal: $O(N \log N)$
 2. FFT of pattern signal: $O(N \log N)$ (padded to same length)
-3. Pointwise multiplication: $O(N)$
+3. Element-wise multiplication: $O(N)$
 4. Inverse FFT: $O(N \log N)$
 - Total: $O(N \log N)$
  
@@ -2559,7 +2564,7 @@ For our text matching problem:
 2. Compute $score_c[i] = (text_c \star pattern_c)[i]$ using FFT:
    - $\mathcal{F}\{text_c\}$
    - $\mathcal{F}\{\overline{pattern_c}\}$ (or just conjugate $\mathcal{F}\{pattern_c\}$)
-   - Multiply pointwise
+   - Multiply element-wise
    - Inverse FFT
 3. Sum over all characters: $score[i] = \sum_{c \in \Sigma} score_c[i]$
 4. Positions where $score[i] = |pattern|$ are exact matches!
@@ -2574,11 +2579,11 @@ $$e^{i\theta} = \cos(\theta) + i\sin(\theta)$$
  
 So our DFT basis functions $e^{-i2\pi kn/N}$ are actually spinning around the unit circle in the complex plane. Each frequency $k$ spins at a different rate, and the DFT measures how much our signal "resonates" with each spinning frequency.
  
-When we multiply in the frequency domain, we're combining these resonances. The inverse FFT then reconstructs the convolution by adding up all these spinning components with the right phases.
+When we multiply element-wise in the frequency domain, we're combining these resonances. The inverse FFT then reconstructs the convolution by adding up all these spinning components with the right phases.
  
 It's like... imagine you're trying to predict where two spinning dancers will meet. Instead of tracking their every move (convolution), you can:
 1. Figure out how fast each is spinning (FFT)
-2. Multiply their spin rates (frequency domain multiplication)
+2. Multiply their spin rates element-wise (frequency domain multiplication)
 3. Calculate where they'll meet (inverse FFT)
  
 That's the essence of why this beautiful theorem works!
