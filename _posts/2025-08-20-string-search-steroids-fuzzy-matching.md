@@ -2241,7 +2241,7 @@ $$
 \sum_{j=0}^{|P|-1} T_c[i+j] \times P_c[j]
 $$
 
-This is **exactly** the definition of cross-correlation between $$`T_c`$$ and $$`P_c`$$ at position `i`! And cross-correlation is just convolution with one signal flipped. If we reverse our pattern $$`P_c`$$ to get $$`P_c^{rev}`$$, then we can write our operation as a convolution:
+This is **exactly** the definition of cross-correlation between $$T_c$$ and $$P_c$$ at position i! And cross-correlation is just convolution with one signal flipped. If we reverse our pattern $$P_c$$ to get $$P_c^{rev}$$, then we can write our operation as a convolution:
 
 $$
 \text{matches}_c(i) = (T_c * P_c^{rev})[i]
@@ -2250,8 +2250,9 @@ $$
 Where `*` is the convolution operator! So our total matching becomes:
 
 $$
-\text{total\_matches}(i) = \sum_{c \in \{A,T,G,C\}} (T_c * P_c^{rev})[i]
+\text{total_matches}(i) = \sum_{c \in \{A,T,G,C\}} (T_c * P_c^{rev})[i]
 $$
+
 We just wrote pattern matching as a convolution problem!
 
 But wait, why did signals suddenly show up here? Weren't we dealing with text and DNA sequences, not signals? You're probably thinking: "Signals are for audio and radio waves and stuff. Text is just... text. Letters. Symbols. Not wavy things!"
@@ -2599,7 +2600,7 @@ Remember, we need to find the convolution to get the number of matches at each p
 
 1. **Transform text signal to frequency domain** using Fourier Transform
 2. **Transform pattern signal to frequency domain** using Fourier Transform  
-3. **Multiply them together** (this is where the convolution theorem shines!)
+3. **Multiply them element wise** (this is where the convolution theorem shines!)
 4. **Transform back to time domain** using Inverse Fourier Transform
 
 And boom! We get a vector containing the number of character matches at each position.
@@ -2619,7 +2620,7 @@ The result? A vector where each position tells us exactly how many characters ma
 
 Seems almost magical, doesn't it? Like we cheated the universe by taking a detour through frequency space!
 
-Now here's the real kicker—how much time does this whole process actually take?
+Now how much time does this whole process actually take?
 
 To calculate the Fourier transform, we use an algorithm called **FFT (Fast Fourier Transform)**. This beautiful algorithm calculates the Fourier transform in O(N log N) time using a divide-and-conquer approach. If you're curious about the nitty-gritty details of how FFT works its magic, you can dive deeper at [cp-algorithms.com](https://cp-algorithms.com/algebra/fft.html).
 
