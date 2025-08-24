@@ -4357,7 +4357,7 @@ We went from brute force (11.6 days) to FFT magic (5 minutes) - but this wasn't 
 
 We explored **trees** (tries), **graphs** (Aho-Corasick automata), and **mathematics** (signal processing). Each taught us something different about algorithmic thinking. And let's take a moment to appreciate that we did the string pattern matching in frequency domain. 
 
-What I want you to take it away from this is how very similar looking problems can have very very different optimum solutions. And we might need to take completely different approach to solve each of them, maybe even go out of our way a little bit.
+What I want you to take away from this is how very similar looking problems can have extremely different optimal solutions. And we might need to take completely different approaches to solve each of them, maybe even go out of our way a little bit.
 
 
 Thanks for reading! I hope you've learned something new and caught a glimpse of how trees, graphs, and math can solve problems in unexpected ways. The next time you hit a wall, don't just code harder—think differently!
